@@ -27,8 +27,12 @@ os.environ["LANGCHAIN_PROJECT"] = st.secrets["LANGCHAIN_PROJECT"]
 
 api_key = st.secrets["GROQ_API_KEY"]
 
-# Initialize HF embeddings
-embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+#  Initialize HF embeddings
+embeddings = HuggingFaceEmbeddings(
+    model_name="all-MiniLM-L6-v2",
+    model_kwargs={"device": "cpu"}
+)
+
 
 # Streamlit UI
 st.set_page_config(page_title="Conversational PDF Chatbot", layout="wide")
@@ -105,9 +109,9 @@ if user_input:
         splits = text_splitter.split_documents(documents)
         # vectorstore = Chroma.from_documents(documents=splits, embedding=embeddings)
         vectorstore = Chroma.from_documents(
-        documents=splits,
-        embedding=embeddings,
-        )
+            documents=splits,
+            embedding=embeddings
+            )
         retriever = vectorstore.as_retriever()
 
         # Build RAG chain

@@ -102,10 +102,11 @@ for msg in chat_messages:
         st.markdown(msg.content)
 
 # Input field with send button inside it (modern chat interface)
-# Chat input and file uploader in two rows
-user_input = st.chat_input("Ask a question or upload PDF")
-uploaded_files = st.file_uploader("📄", type="pdf", accept_multiple_files=True, label_visibility="collapsed")
-
+with st.container():
+    user_input = st.chat_input("Ask a question or upload PDF")
+with st.container():
+    uploaded_files = st.file_uploader("📄", type="pdf", accept_multiple_files=True, label_visibility="collapsed")
+  
 # LLM instance
 llm = ChatGroq(groq_api_key=api_key, model_name=model_name, temperature=temperature)
   

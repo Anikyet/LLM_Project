@@ -20,10 +20,11 @@ os.environ['HF_TOKEN'] = os.getenv("HF_TOKEN")
 
 
 ## Langsmith Tracking
-os.environ["LANGCHAIN_API_KEY"] = os.getenv("LANGCHAIN_API_KEY")
-os.environ["LANGCHAIN_TRACING_V2"] = "true"
-os.environ["LANGCHAIN_PROJECT"] = os.getenv("LANGCHAIN_PROJECT")
+os.environ["LANGCHAIN_API_KEY"] = st.secrets["LANGCHAIN_API_KEY"]
+os.environ["LANGCHAIN_TRACING_V2"] = st.secrets["LANGCHAIN_TRACING_V2"]
+os.environ["LANGCHAIN_PROJECT"] = st.secrets["LANGCHAIN_PROJECT"]
 
+api_key = st.secrets["GROQ_API_KEY"]
 
 # Initialize HF embeddings
 embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
@@ -35,7 +36,6 @@ st.subheader("How can i help you..?")
 
 # Sidebar for API key
 st.sidebar.header("🔐 Configuration")
-api_key = st.sidebar.text_input("Enter your Groq API key:", type="password")
 model_name=st.sidebar.selectbox("Select Open Source model",["Gemma2-9b-It","Mistral-Saba-24b","Llama3-70b-8192"],index=0)
 ## Adjust response parameter
 temperature=st.sidebar.slider("Temperature",min_value=0.0,max_value=1.0,value=0.7)

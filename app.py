@@ -15,7 +15,7 @@ import os
 import tempfile
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
-
+import uuid
 import sys
 import pysqlite3
 
@@ -59,11 +59,29 @@ if not api_key:
 llm = ChatGroq(groq_api_key=api_key, model_name=model_name,temperature=temperature)
 
 # Session ID for chat history
-session_id = st.sidebar.text_input("Session ID", value="default_session")
+# session_id = st.sidebar.text_input("Session ID", value="default_session")
+# if 'store' not in st.session_state:
+#     st.session_state.store = {}
+# if session_id not in st.session_state.store:
+#     st.session_state.store[session_id] = ChatMessageHistory()
+
+# Auto-generate session ID per user
+if "session_id" not in st.session_state:
+    st.session_state.session_id = str(uuid.uuid4())
+session_id = st.session_state.session_id
+st.sidebar.text_input("Session ID", value=session_id, disabled=True)
+
+# Optional: Reset session
+if st.sidebar.button("🔄 New Session"):
+    st.session_state.session_id = str(uuid.uuid4())
+    st.rerun()
+
+# Initialize chat history store
 if 'store' not in st.session_state:
     st.session_state.store = {}
 if session_id not in st.session_state.store:
     st.session_state.store[session_id] = ChatMessageHistory()
+
 
 # Prompt templates
 contextualize_q_prompt = ChatPromptTemplate.from_messages([

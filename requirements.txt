@@ -26,3 +26,6 @@ numexpr
 streamlit
 chromadb
 pysqlite3-binary
+sentence-transformers
+huggingface_hub[hf_xet]
+

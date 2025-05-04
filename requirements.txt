@@ -17,13 +17,12 @@ pandas
 openai
 langchain-groq
 duckduckgo-search
-mysql-connector-python
-SQLAlchemy
 validators==0.28.1
 unstructured
 pytube
 numexpr
 streamlit
-chromadb
 pysqlite3-binary
-tempfile
+chromadb
+langchain
+huggingface-hub

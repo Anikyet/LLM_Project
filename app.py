@@ -16,7 +16,7 @@ import os
 
 # Load environment variables
 load_dotenv()
-os.environ['HF_TOKEN'] = os.getenv("HF_TOKEN")
+os.environ['HF_TOKEN'] = st.secrets["HF_TOKEN"]
 
 
 ## Langsmith Tracking

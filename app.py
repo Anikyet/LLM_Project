@@ -13,6 +13,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
 from dotenv import load_dotenv
 import os
+import tempfile
 
 # Load environment variables
 load_dotenv()
@@ -90,12 +91,14 @@ if user_input:
     if uploaded_files:
         documents = []
         for uploaded_file in uploaded_files:
-            temp_pdf = f"./temp_{uploaded_file.name}"
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+                tmp.write(uploaded_file.getvalue())
+                temp_pdf = tmp.name
             with open(temp_pdf, "wb") as f:
                 f.write(uploaded_file.getvalue())
             loader = PyPDFLoader(temp_pdf)
             documents.extend(loader.load())
-            os.remove(temp_pdf)
+            
 
         # Process docs
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=5000, chunk_overlap=500)

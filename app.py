@@ -166,6 +166,6 @@ if user_input:
             response = llm.invoke(messages)
             assistant_reply = response.content
             # Add to chat history immediately (response will now appear at top)
-        session_history.add_user_message(user_input)
-        session_history.add_ai_message(assistant_reply)
+            session_history.add_user_message(user_input)
+            session_history.add_ai_message(assistant_reply)
         st.rerun()

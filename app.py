@@ -107,8 +107,8 @@ if user_input:
         vectorstore = Chroma.from_documents(
         documents=splits,
         embedding=embeddings,
-        persist_directory=None
-        # persist_directory="./chroma_db"  # choose any folder
+        # persist_directory=None
+        persist_directory="./chroma_db"  # choose any folder
         )
         retriever = vectorstore.as_retriever()
 

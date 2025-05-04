@@ -15,7 +15,7 @@ import os
 import tempfile
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
-
+import uuid
 import sys
 import pysqlite3
 
@@ -55,15 +55,30 @@ if not api_key:
     st.warning("Please enter the Groq API Key to continue.")
     st.stop()
 
-# Initialize LLM
-llm = ChatGroq(groq_api_key=api_key, model_name=model_name,temperature=temperature)
-
 # Session ID for chat history
-session_id = st.sidebar.text_input("Session ID", value="default_session")
+# session_id = st.sidebar.text_input("Session ID", value="default_session")
+# if 'store' not in st.session_state:
+#     st.session_state.store = {}
+# if session_id not in st.session_state.store:
+#     st.session_state.store[session_id] = ChatMessageHistory()
+
+# Auto-generate session ID per user
+if "session_id" not in st.session_state:
+    st.session_state.session_id = str(uuid.uuid4())
+session_id = st.session_state.session_id
+st.sidebar.text_input("Session ID", value=session_id, disabled=True)
+
+# Optional: Reset session
+if st.sidebar.button("🔄 New Session"):
+    st.session_state.session_id = str(uuid.uuid4())
+    st.rerun()
+
+# Initialize chat history store
 if 'store' not in st.session_state:
     st.session_state.store = {}
 if session_id not in st.session_state.store:
     st.session_state.store[session_id] = ChatMessageHistory()
+
 
 # Prompt templates
 contextualize_q_prompt = ChatPromptTemplate.from_messages([
@@ -87,11 +102,13 @@ for msg in chat_messages:
         st.markdown(msg.content)
 
 # Input field with send button inside it (modern chat interface)
-# Chat input and file uploader in two rows
 with st.container():
     user_input = st.chat_input("Ask a question or upload PDF")
 with st.container():
     uploaded_files = st.file_uploader("📄", type="pdf", accept_multiple_files=True, label_visibility="collapsed")
+  
+# LLM instance
+llm = ChatGroq(groq_api_key=api_key, model_name=model_name, temperature=temperature)
   
 # Handle submission
 if user_input:
@@ -104,8 +121,6 @@ if user_input:
             with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
                 tmp.write(uploaded_file.getvalue())
                 temp_pdf = tmp.name
-            with open(temp_pdf, "wb") as f:
-                f.write(uploaded_file.getvalue())
             loader = PyPDFLoader(temp_pdf)
             documents.extend(loader.load())
             
@@ -113,7 +128,7 @@ if user_input:
         # Process docs
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=5000, chunk_overlap=500)
         splits = text_splitter.split_documents(documents)
-        vectorstore = Chroma.from_documents(documents=splits, embedding=embeddings)
+        vectorstore = Chroma.from_documents(documents=splits, embedding=embeddings,persist_directory=None, collection_name=f"temp_{session_id}")
         retriever = vectorstore.as_retriever()
 
         # Build RAG chain
@@ -143,9 +158,13 @@ if user_input:
             )
             assistant_reply = response['answer']
         else:
-            response = llm.invoke(user_input)
+            messages = qa_prompt.format_messages(
+                input=user_input,
+                chat_history=session_history.messages,
+                context="No PDF uploaded. Use chat history only."
+            )
+            response = llm.invoke(messages)
             assistant_reply = response.content
-
             # Add to chat history immediately (response will now appear at top)
             session_history.add_user_message(user_input)
             session_history.add_ai_message(assistant_reply)

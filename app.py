@@ -113,7 +113,7 @@ if user_input:
         # Process docs
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=5000, chunk_overlap=500)
         splits = text_splitter.split_documents(documents)
-        vectorstore = Chroma.from_documents(documents=splits, embedding=embeddings)
+        vectorstore = Chroma.from_documents(documents=splits, embedding=embeddings,persist_directory=None, collection_name=f"temp_{session_id}")
         retriever = vectorstore.as_retriever()
 
         # Build RAG chain

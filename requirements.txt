@@ -26,4 +26,3 @@ numexpr
 streamlit
 chromadb
 pysqlite3-binary
-tempfile

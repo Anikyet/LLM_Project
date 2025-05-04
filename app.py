@@ -13,7 +13,8 @@ from langchain_community.document_loaders import PyPDFLoader
 from dotenv import load_dotenv
 import os
 import tempfile
-from langchain.embeddings import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
+
 
 # Load environment variables
 load_dotenv()

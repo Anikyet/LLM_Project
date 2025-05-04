@@ -158,13 +158,13 @@ if user_input:
             )
             assistant_reply = response['answer']
         else:
-            response = llm.invoke(user_input)
-            assistant_reply = response.content
             messages = qa_prompt.format_messages(
                 input=user_input,
                 chat_history=session_history.messages,
                 context="No PDF uploaded. Use chat history only."
             )
+            response = llm.invoke(messages)
+            assistant_reply = response.content
             # Add to chat history immediately (response will now appear at top)
         session_history.add_user_message(user_input)
         session_history.add_ai_message(assistant_reply)

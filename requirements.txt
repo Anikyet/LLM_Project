@@ -25,4 +25,4 @@ pytube
 numexpr
 streamlit
 chromadb
-langchain_chroma
+pysqlite3-binary

@@ -55,9 +55,6 @@ if not api_key:
     st.warning("Please enter the Groq API Key to continue.")
     st.stop()
 
-# Initialize LLM
-llm = ChatGroq(groq_api_key=api_key, model_name=model_name,temperature=temperature)
-
 # Session ID for chat history
 # session_id = st.sidebar.text_input("Session ID", value="default_session")
 # if 'store' not in st.session_state:
@@ -106,10 +103,12 @@ for msg in chat_messages:
 
 # Input field with send button inside it (modern chat interface)
 # Chat input and file uploader in two rows
-with st.container():
-    user_input = st.chat_input("Ask a question or upload PDF")
-with st.container():
-    uploaded_files = st.file_uploader("📄", type="pdf", accept_multiple_files=True, label_visibility="collapsed")
+user_input = st.chat_input("Ask a question or upload PDF")
+uploaded_files = st.file_uploader("\ud83d\udcc4", type="pdf", accept_multiple_files=True, label_visibility="collapsed")
+
+
+# LLM instance
+llm = ChatGroq(groq_api_key=api_key, model_name=model_name, temperature=temperature)
   
 # Handle submission
 if user_input:
@@ -122,8 +121,6 @@ if user_input:
             with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
                 tmp.write(uploaded_file.getvalue())
                 temp_pdf = tmp.name
-            with open(temp_pdf, "wb") as f:
-                f.write(uploaded_file.getvalue())
             loader = PyPDFLoader(temp_pdf)
             documents.extend(loader.load())
             
@@ -163,7 +160,11 @@ if user_input:
         else:
             response = llm.invoke(user_input)
             assistant_reply = response.content
-
+            messages = qa_prompt.format_messages(
+                input=user_input,
+                chat_history=session_history.messages,
+                context="No PDF uploaded. Use chat history only."
+            )
             # Add to chat history immediately (response will now appear at top)
             session_history.add_user_message(user_input)
             session_history.add_ai_message(assistant_reply)

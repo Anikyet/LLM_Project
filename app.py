@@ -2,7 +2,6 @@
 import streamlit as st
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain_chroma import Chroma
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -13,7 +12,8 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
 from dotenv import load_dotenv
 import os
-import tempfile
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain.vectorstores import Chroma
 
 # Load environment variables
 load_dotenv()
@@ -28,8 +28,10 @@ os.environ["LANGCHAIN_PROJECT"] = st.secrets["LANGCHAIN_PROJECT"]
 api_key = st.secrets["GROQ_API_KEY"]
 
 # Initialize HF embeddings
-embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-
+embeddings = HuggingFaceEmbeddings(
+    model_name="all-MiniLM-L6-v2",
+    model_kwargs={"device": "cpu"}
+)
 # Streamlit UI
 st.set_page_config(page_title="Conversational PDF Chatbot", layout="wide")
 st.title(" Hey, Good to see you here....")
@@ -91,14 +93,12 @@ if user_input:
     if uploaded_files:
         documents = []
         for uploaded_file in uploaded_files:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-                tmp.write(uploaded_file.getvalue())
-                temp_pdf = tmp.name
+            temp_pdf = f"./temp_{uploaded_file.name}"
             with open(temp_pdf, "wb") as f:
                 f.write(uploaded_file.getvalue())
             loader = PyPDFLoader(temp_pdf)
             documents.extend(loader.load())
-            
+            os.remove(temp_pdf)
 
         # Process docs
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=5000, chunk_overlap=500)

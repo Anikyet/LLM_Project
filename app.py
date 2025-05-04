@@ -14,7 +14,12 @@ from dotenv import load_dotenv
 import os
 import tempfile
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain.vectorstores import Chroma
+from langchain_community.vectorstores import Chroma
+
+import sys
+import pysqlite3
+
+sys.modules["sqlite3"] = pysqlite3
 
 # Load environment variables
 load_dotenv()

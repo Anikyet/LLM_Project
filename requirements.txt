@@ -28,3 +28,17 @@ chromadb
 pysqlite3-binary
 sentence-transformers
 huggingface_hub
+streamlit
+langchain
+langchain-community
+langchain-core
+langchain-groq
+langchain-huggingface
+huggingface-hub
+transformers
+sentence-transformers
+pysqlite3-binary
+python-dotenv
+chromadb
+pypdf
+

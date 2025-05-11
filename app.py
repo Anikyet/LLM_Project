@@ -61,15 +61,14 @@ col1, col2 = st.columns([1, 7])
 # st.subheader("How can i help you..?")
 
 with col1:
-    st.image(image, width=80)  # Resize as needed
+    st.image(image, width=120)  # Resize as needed
 
 with col2:
-    # Title and subheading in one <h1> tag with <p> for subheading
+    # Title and subheading on the same line
     st.markdown("""
-    <h1 style='margin-bottom: 0;'>Intelleq</h1>
-    <p style='color: #1f77b4; margin-top: -10px;'>- Your AI Assistant</p>
+    <h1 style='margin-bottom: 0; display: inline;'>Intelleq</h1>
+    <h3 style='color: #1f77b4; display: inline; margin-left: 10px;'>- Your AI Assistant</h3>
     """, unsafe_allow_html=True)
-
 
 # Sidebar for API key
 st.sidebar.header("🔐 Configuration")

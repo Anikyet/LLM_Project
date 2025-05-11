@@ -136,6 +136,8 @@ with st.container():
 
 # LLMs
 llm = ChatGroq(groq_api_key=api_key, model_name=model_name, temperature=temperature)
+
+# Initialize evaluator with the same API key and model name
 evaluator = ChatGroq(groq_api_key=api_key, model_name=model_name, temperature=0)
 
 # Handle Submission

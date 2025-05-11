@@ -33,6 +33,8 @@ embeddings = HuggingFaceEmbeddings(
     model_name="all-MiniLM-L6-v2",
     model_kwargs={"device": "cpu"}
 )
+# Initialize evaluator with the same API key and model name
+evaluator = ChatGroq(groq_api_key=api_key, model_name=model_name, temperature=0)
 
 # UI Setup
 image = Image.open('image.png')
@@ -120,7 +122,12 @@ if st.sidebar.button("🔍 Evaluate Entire Conversation"):
         context=full_conversation  # Pass the full conversation history as context
     )
     
-    eval_result = evaluator.invoke(eval_messages)
+    # Use try-except to catch and print any errors during the invocation
+    try:
+        eval_result = evaluator.invoke(eval_messages)
+    except Exception as e:
+        st.error(f"Error occurred during evaluation: {e}")
+        st.stop()
     
     # Show the evaluation result
     st.subheader("🧪 Full Conversation Evaluation")
@@ -137,8 +144,6 @@ with st.container():
 # LLMs
 llm = ChatGroq(groq_api_key=api_key, model_name=model_name, temperature=temperature)
 
-# Initialize evaluator with the same API key and model name
-evaluator = ChatGroq(groq_api_key=api_key, model_name=model_name, temperature=0)
 
 # Handle Submission
 if user_input:

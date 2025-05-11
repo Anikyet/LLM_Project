@@ -129,11 +129,15 @@ if st.sidebar.button("🔍 Evaluate Entire Conversation"):
         st.error(f"Error occurred during evaluation: {e}")
         st.stop()
     
-    # Show the evaluation result
-    st.subheader("🧪 Full Conversation Evaluation")
-    st.markdown("**Full conversation context provided to the evaluator:**")
-    st.text(full_conversation)  # Optionally display the entire conversation
-    st.info(eval_result.content)
+    # Toggle to show/hide evaluation
+    show_eval = st.toggle("🔍 Show Evaluation Result", value=True)
+    
+    if show_eval:
+        st.subheader("🧪 Full Conversation Evaluation")
+        with st.expander("📜 Full conversation context", expanded=False):
+            st.text(full_conversation)
+        st.info(eval_result.content)
+
 
 # Input + File (Below Evaluation Results)
 with st.container():

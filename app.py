@@ -51,7 +51,7 @@ st.set_page_config(page_title="Intelleq", layout="wide")
 col1, col2 = st.columns([1, 9])
 # Display the resized image
 with col1:
-    st.image(image, width=120,, use_container_width=True)
+    st.image(image, width=120, use_container_width=True)
 with col2:
     st.title("Intelleq")
 st.divider()

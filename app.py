@@ -53,7 +53,7 @@ st.set_page_config(page_title="Intelleq", layout="wide")
 col1, col2 = st.columns([1, 3])
 # Display the resized image
 with col1:
-    st.image(resized_image, caption='Manually Resized Image', use_column_width=False)
+    st.image(resized_image, caption='Manually Resized Image', use_container_width=True)
 with col2:
     st.title("Intelleq", divider="gray")
     

@@ -51,7 +51,7 @@ st.header(" _Hey, Good to see you here...._")
 st.subheader("How can I help you..?")
 
 # Sidebar
-st.sidebar.header("\ud83d\udd10 Configuration")
+st.sidebar.header(" Configuration")
 model_name = st.sidebar.selectbox("Select Open Source model", ["Gemma2-9b-It", "Deepseek-R1-Distill-Llama-70b", "Qwen-Qwq-32b", "Compound-Beta", "Llama3-70b-8192"], index=0)
 temperature = st.sidebar.slider("Creativity Level", 0.0, 1.0, 0.7)
 language = st.sidebar.selectbox("Select Language", ["English", "Hindi", "Hinglish", "French", "Spanish"], index=0)

@@ -44,7 +44,7 @@ embeddings = HuggingFaceEmbeddings(
 image = Image.open('image.png')
 
 # Resize the image (e.g., to 300x300 pixels)
-resized_image = image.resize((300, 300))
+resized_image = image.resize((100, 100))
 
 
 # Streamlit UI
@@ -55,8 +55,8 @@ col1, col2 = st.columns([1, 3])
 with col1:
     st.image(resized_image, caption='Manually Resized Image', use_container_width=True)
 with col2:
-    st.title("Intelleq", divider="gray")
-    
+    st.title("Intelleq")
+st.divider()
 st.header(" _Hey, Good to see you here...._")
 st.subheader("How can i help you..?")
 

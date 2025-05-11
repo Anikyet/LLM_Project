@@ -55,7 +55,7 @@ with col1:
 with col2:
     st.title("Intelleq")
 with col3:
-    st.subheading("_italics_ :blue[ Your AI Assistant]")
+    st.subheader("_italics_ :blue[ Your AI Assistant]")
 st.divider()
 st.header(" _Hey, Good to see you here...._")
 st.subheader("How can i help you..?")

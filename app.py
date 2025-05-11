@@ -18,6 +18,7 @@ from langchain_community.vectorstores import Chroma
 import uuid
 import sys
 import pysqlite3
+from PIL import Image
 
 sys.modules["sqlite3"] = pysqlite3
 

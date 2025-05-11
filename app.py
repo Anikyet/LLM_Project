@@ -100,7 +100,6 @@ evaluation_prompt = ChatPromptTemplate.from_messages([
 ])
 
 # Display Chat History
-st.subheader("\ud83d\udcac")
 chat_messages = st.session_state.store.get(session_id, ChatMessageHistory()).messages[-20:]
 for msg in chat_messages:
     role = "user" if type(msg).__name__ == "HumanMessage" else "assistant"

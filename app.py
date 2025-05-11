@@ -49,16 +49,26 @@ image = Image.open('image.png')
 st.set_page_config(page_title="Intelleq", layout="wide")
 
 col1, col2, col3 = st.columns([1, 3, 3])
-# Display the resized image
+# # Display the resized image
+# with col1:
+#     st.image(image, width=120, use_container_width=True)
+# with col2:
+#     st.title("Intelleq")
+# with col3:
+#     st.subheader(":blue[- Your AI Assistant]")
+# st.divider()
+# st.header(" _Hey, Good to see you here...._")
+# st.subheader("How can i help you..?")
+
 with col1:
-    st.image(image, width=120, use_container_width=True)
+    st.image(image, width=80)  # Resize as needed
+
 with col2:
-    st.title("Intelleq")
+    st.markdown("<h1 style='margin-bottom: 0;'>Intelleq</h1>", unsafe_allow_html=True)
+
 with col3:
-    st.subheader(":blue[- Your AI Assistant]")
-st.divider()
-st.header(" _Hey, Good to see you here...._")
-st.subheader("How can i help you..?")
+    st.markdown("<h3 style='color: #1f77b4; margin-top: 20px;'>- Your AI Assistant</h3>", unsafe_allow_html=True)
+
 
 # Sidebar for API key
 st.sidebar.header("🔐 Configuration")

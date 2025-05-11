@@ -70,6 +70,9 @@ with col2:
     <span style='color: #1f77b4; font-size: .7em;  margin-left: 10px;'>- Your AI Assistant</span>
     </h1>
     """, unsafe_allow_html=True)
+st.divider()
+st.header(" _Hey, Good to see you here...._")
+st.subheader("How can i help you..?")
 
 # Sidebar for API key
 st.sidebar.header("🔐 Configuration")

@@ -68,7 +68,7 @@ with col2:
     st.markdown("""
     <h1 style='margin-bottom: 0; display: inline-block; vertical-align: middle;'>Intelleq
     <span>
-    <h5> style='color: #1f77b4; display: inline-block; vertical-align: middle; margin-left: 10px;'>- Your AI Assistant</h5>
+    <h5 style='color: #1f77b4; display: inline-block; vertical-align: middle; margin-left: 10px;'>- Your AI Assistant</h5>
     <span>
     </h1>
     

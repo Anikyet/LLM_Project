@@ -33,8 +33,6 @@ embeddings = HuggingFaceEmbeddings(
     model_name="all-MiniLM-L6-v2",
     model_kwargs={"device": "cpu"}
 )
-# Initialize evaluator with the same API key and model name
-evaluator = ChatGroq(groq_api_key=api_key, model_name=model_name, temperature=0)
 
 # UI Setup
 image = Image.open('image.png')
@@ -105,6 +103,8 @@ for msg in chat_messages:
     role = "user" if type(msg).__name__ == "HumanMessage" else "assistant"
     with st.chat_message(role):
         st.markdown(msg.content)
+# Initialize evaluator with the same API key and model name
+evaluator = ChatGroq(groq_api_key=api_key, model_name=model_name, temperature=0)
 
 # Evaluate Entire Conversation Button
 if st.sidebar.button("🔍 Evaluate Entire Conversation"):

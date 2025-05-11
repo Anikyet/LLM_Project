@@ -42,11 +42,9 @@ col1, col2 = st.columns([1, 7])
 with col1:
     st.image(image, width=120)
 with col2:
-    st.markdown("""
-    <h1 >Intelleq
+    st.markdown("""<h1 >Intelleq
     <span style='color: #1f77b4; font-size: .7em;  margin-left: 10px;'>- Your AI Assistant</span>
-    </h1>
-    """, unsafe_allow_html=True)
+    </h1>""", unsafe_allow_html=True)
 st.header(" _Hey, Good to see you here...._")
 st.subheader("How can I help you..?")
 
@@ -106,43 +104,29 @@ for msg in chat_messages:
     with st.chat_message(role):
         st.markdown(msg.content)
 
-# Evaluate All Button (in sidebar)
-if st.sidebar.button("🔍 Evaluate Conversation"):
+# Evaluate Entire Conversation Button
+if st.sidebar.button("🔍 Evaluate Entire Conversation"):
     session_history = st.session_state.store.get(session_id, ChatMessageHistory()).messages
-    evaluations = []
-
-    for i in range(0, len(session_history) - 1, 2):
-        if type(session_history[i]).__name__ == "HumanMessage" and type(session_history[i + 1]).__name__ == "AIMessage":
-            question = session_history[i].content
-            answer = session_history[i + 1].content
-            context = "No PDF uploaded. Use chat history only."
-
-            eval_messages = evaluation_prompt.format_messages(
-                question=question,
-                answer=answer,
-                context=context
-            )
-            eval_result = ChatGroq(groq_api_key=api_key, model_name=model_name, temperature=0).invoke(eval_messages)
-            evaluations.append((question, answer, eval_result.content))
-
-    if evaluations:
-        if "show_evals" not in st.session_state:
-            st.session_state.show_evals = True
-
-        toggle_label = "👁️ Hide Evaluation" if st.session_state.show_evals else "👁️ Show Evaluation"
-        if st.sidebar.button(toggle_label):
-            st.session_state.show_evals = not st.session_state.show_evals
-            st.rerun()
-
-        if st.session_state.show_evals:
-            st.subheader("🧪 Full Conversation Evaluation")
-            for idx, (q, a, e) in enumerate(evaluations):
-                with st.expander(f"Evaluation {idx + 1}", expanded=False):
-                    st.markdown(f"**Q:** {q}")
-                    st.markdown(f"**A:** {a}")
-                    st.info(e)
-    else:
-        st.warning("No Q&A pairs to evaluate.")
+    full_conversation = ""
+    
+    for msg in session_history:
+        role = "User" if type(msg).__name__ == "HumanMessage" else "Assistant"
+        full_conversation += f"{role}: {msg.content}\n"
+    
+    # Use the entire conversation as context for evaluation
+    eval_messages = evaluation_prompt.format_messages(
+        question="Entire conversation",  # The question is now a placeholder for the entire conversation
+        answer="Evaluate the entire conversation",  # We evaluate the whole conversation
+        context=full_conversation  # Pass the full conversation history as context
+    )
+    
+    eval_result = evaluator.invoke(eval_messages)
+    
+    # Show the evaluation result
+    st.subheader("🧪 Full Conversation Evaluation")
+    st.markdown("**Full conversation context provided to the evaluator:**")
+    st.text(full_conversation)  # Optionally display the entire conversation
+    st.info(eval_result.content)
 
 # Input + File (Below Evaluation Results)
 with st.container():

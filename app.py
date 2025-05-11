@@ -1,4 +1,3 @@
-
 import streamlit as st
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
@@ -14,7 +13,6 @@ from dotenv import load_dotenv
 import os
 import tempfile
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.vectorstores import Chroma
 import uuid
 import sys
 import pysqlite3
@@ -25,96 +23,65 @@ sys.modules["sqlite3"] = pysqlite3
 # Load environment variables
 load_dotenv()
 os.environ['HF_TOKEN'] = st.secrets["HF_TOKEN"]
-
-
-## Langsmith Tracking
 os.environ["LANGCHAIN_API_KEY"] = st.secrets["LANGCHAIN_API_KEY"]
 os.environ["LANGCHAIN_TRACING_V2"] = st.secrets["LANGCHAIN_TRACING_V2"]
 os.environ["LANGCHAIN_PROJECT"] = st.secrets["LANGCHAIN_PROJECT"]
-
 api_key = st.secrets["GROQ_API_KEY"]
 
-#  Initialize HF embeddings
+# Embeddings
 embeddings = HuggingFaceEmbeddings(
     model_name="all-MiniLM-L6-v2",
     model_kwargs={"device": "cpu"}
 )
 
-# Load the image
+# UI Setup
 image = Image.open('image.png')
-
-
-
-# Streamlit UI
 st.set_page_config(page_title="Intelleq", layout="wide")
 
 col1, col2 = st.columns([1, 7])
-# # Display the resized image
-# with col1:
-#     st.image(image, width=120, use_container_width=True)
-# with col2:
-#     st.title("Intelleq")
-# with col3:
-#     st.subheader(":blue[- Your AI Assistant]")
-# st.divider()
-# st.header(" _Hey, Good to see you here...._")
-# st.subheader("How can i help you..?")
-
 with col1:
-    st.image(image, width=120)  # Resize as needed
-
+    st.image(image, width=120)
 with col2:
-    # Title and subheading on the same line using <span> and inline styles
     st.markdown("""
     <h1 >Intelleq
     <span style='color: #1f77b4; font-size: .7em;  margin-left: 10px;'>- Your AI Assistant</span>
     </h1>
     """, unsafe_allow_html=True)
 st.header(" _Hey, Good to see you here...._")
-st.subheader("How can i help you..?")
+st.subheader("How can I help you..?")
 
-# Sidebar for API key
+# Sidebar
 st.sidebar.header("🔐 Configuration")
-model_name=st.sidebar.selectbox("Select Open Source model",["Gemma2-9b-It","Deepseek-R1-Distill-Llama-70b","Qwen-Qwq-32b","Compound-Beta","Llama3-70b-8192"],index=0)
-## Adjust response parameter
-temperature=st.sidebar.slider("Creativity Level",min_value=0.0,max_value=1.0,value=0.7)
+model_name = st.sidebar.selectbox("Select Open Source model", ["Gemma2-9b-It", "Deepseek-R1-Distill-Llama-70b", "Qwen-Qwq-32b", "Compound-Beta", "Llama3-70b-8192"], index=0)
+temperature = st.sidebar.slider("Creativity Level", 0.0, 1.0, 0.7)
 language = st.sidebar.selectbox("Select Language", ["English", "Hindi", "Hinglish", "French", "Spanish"], index=0)
 st.session_state.language = language
+
 if not api_key:
     st.warning("Please enter the Groq API Key to continue.")
     st.stop()
 
-# Auto-generate session ID per user
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
 session_id = st.session_state.session_id
 st.sidebar.text_input("Session ID", value=session_id, disabled=True)
-
-# Optional: Reset session
 if st.sidebar.button("🔄 New Session"):
     st.session_state.session_id = str(uuid.uuid4())
     st.rerun()
 
-# Initialize chat history store
+# Chat History
 if 'store' not in st.session_state:
     st.session_state.store = {}
 if session_id not in st.session_state.store:
     st.session_state.store[session_id] = ChatMessageHistory()
 
-
-# Prompt templates
+# Prompt Templates
 contextualize_q_prompt = ChatPromptTemplate.from_messages([
     ("system", "Given a chat history and the latest user question, "
                "formulate a standalone question. Do NOT answer it."),
     MessagesPlaceholder("chat_history"),
     ("human", "{input}"),
 ])
-# qa_prompt = ChatPromptTemplate.from_messages([
-#     ("system", "You are an assistant. Use the following context to answer concisely.\n\n{context}"),
-#     MessagesPlaceholder("chat_history"),
-#     ("human", "{input}"),
-# ])
-
 
 qa_prompt = ChatPromptTemplate.from_messages([
     ("system", 
@@ -126,8 +93,13 @@ qa_prompt = ChatPromptTemplate.from_messages([
     ("human", "{input}"),
 ])
 
+evaluation_prompt = ChatPromptTemplate.from_messages([
+    ("system", "You are an evaluator. Given a question, the assistant's answer, and the context used to generate it, "
+               "rate the quality of the answer from 1 (poor) to 5 (excellent). Provide a brief justification."),
+    ("human", "Question: {question}\n\nAnswer: {answer}\n\nContext: {context}")
+])
 
-# Chat history section at the top
+# Display Chat History
 st.subheader("💬")
 chat_messages = st.session_state.store.get(session_id, ChatMessageHistory()).messages[-20:]
 for msg in chat_messages:
@@ -135,19 +107,21 @@ for msg in chat_messages:
     with st.chat_message(role):
         st.markdown(msg.content)
 
-# Input field with send button inside it (modern chat interface)
+# Input + File
 with st.container():
     user_input = st.chat_input("Ask a question or upload PDF")
 with st.container():
     uploaded_files = st.file_uploader("📄", type="pdf", accept_multiple_files=True, label_visibility="collapsed")
-  
-# LLM instance
+
+# LLMs
 llm = ChatGroq(groq_api_key=api_key, model_name=model_name, temperature=temperature)
-  
-# Handle submission
+evaluator = ChatGroq(groq_api_key=api_key, model_name=model_name, temperature=0)
+
+# Handle Submission
 if user_input:
     session_history = st.session_state.store.get(session_id, ChatMessageHistory())
     conversational_rag_chain = None
+    context_string = "No PDF uploaded. Use chat history only."
 
     if uploaded_files:
         documents = []
@@ -157,19 +131,15 @@ if user_input:
                 temp_pdf = tmp.name
             loader = PyPDFLoader(temp_pdf)
             documents.extend(loader.load())
-            
 
-        # Process docs
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=5000, chunk_overlap=500)
         splits = text_splitter.split_documents(documents)
-        vectorstore = Chroma.from_documents(documents=splits, embedding=embeddings,persist_directory=None, collection_name=f"temp_{session_id}")
+        vectorstore = Chroma.from_documents(documents=splits, embedding=embeddings, persist_directory=None, collection_name=f"temp_{session_id}")
         retriever = vectorstore.as_retriever()
 
-        # Build RAG chain
         history_aware_retriever = create_history_aware_retriever(llm, retriever, contextualize_q_prompt)
         question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
         rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
-
 
         def get_session_history(session: str) -> BaseChatMessageHistory:
             if session not in st.session_state.store:
@@ -186,27 +156,40 @@ if user_input:
 
     with st.spinner("Thinking..."):
         if conversational_rag_chain:
-            # response = conversational_rag_chain.invoke(
-            #     {"input": user_input},
-            #     config={"configurable": {"session_id": session_id}},
-            # )
-            # assistant_reply = response['answer']
             response = conversational_rag_chain.invoke(
-                            {"input": user_input, "language": st.session_state.language},
-                                config={"configurable": {"session_id": session_id}},
-                            )
+                {"input": user_input, "language": st.session_state.language},
+                config={"configurable": {"session_id": session_id}},
+            )
             assistant_reply = response['answer']
+            context_string = "\n\n".join(doc.page_content for doc in splits[:3])
         else:
             messages = qa_prompt.format_messages(
                 input=user_input,
                 chat_history=session_history.messages,
-                context="No PDF uploaded. Use chat history only.",
-                language=st.session_state.language,  # ✅ This is the missing part
+                context=context_string,
+                language=st.session_state.language,
             )
             response = llm.invoke(messages)
             assistant_reply = response.content
-            
-            # Add to chat history immediately (response will now appear at top)
             session_history.add_user_message(user_input)
             session_history.add_ai_message(assistant_reply)
+
+        # Display response
+        with st.chat_message("assistant"):
+            st.markdown(assistant_reply)
+
+        # Automated Evaluation
+        eval_messages = evaluation_prompt.format_messages(
+            question=user_input,
+            answer=assistant_reply,
+            context=context_string
+        )
+        eval_result = evaluator.invoke(eval_messages)
+
+        with st.expander("🧪 Evaluation"):
+            st.info(eval_result.content)
+
+        # Store in chat
+        session_history.add_user_message(user_input)
+        session_history.add_ai_message(assistant_reply)
         st.rerun()

@@ -73,7 +73,7 @@ with col2:
 
 # Sidebar for API key
 st.sidebar.header("🔐 Configuration")
-model_name=st.sidebar.selectbox("Select Open Source model",["Gemma2-9b-It","Mistral-Saba-24b","Llama3-70b-8192"],index=0)
+model_name=st.sidebar.selectbox("Select Open Source model",["Gemma2-9b-It","Deepseek-R1-Distill-Llama-70b","Qwen-Qwq-32b","Compound-Beta","Llama3-70b-8192"],index=0)
 ## Adjust response parameter
 temperature=st.sidebar.slider("Creativity Level",min_value=0.0,max_value=1.0,value=0.7)
 language = st.sidebar.selectbox("Select Language", ["English", "Hindi", "Hinglish", "French", "Spanish"], index=0)

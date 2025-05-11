@@ -126,29 +126,23 @@ if st.sidebar.button("🔍 Evaluate Conversation"):
             evaluations.append((question, answer, eval_result.content))
 
     if evaluations:
-        st.subheader("🧪 Full Conversation Evaluation")
-        for idx, (q, a, e) in enumerate(evaluations):
-            with st.expander(f"Evaluation {idx + 1}", expanded=False):
-                st.markdown(f"**Q:** {q}")
-                st.markdown(f"**A:** {a}")
-                st.info(e)
+        if "show_evals" not in st.session_state:
+            st.session_state.show_evals = True
+
+        toggle_label = "👁️ Hide Evaluation" if st.session_state.show_evals else "👁️ Show Evaluation"
+        if st.sidebar.button(toggle_label):
+            st.session_state.show_evals = not st.session_state.show_evals
+            st.rerun()
+
+        if st.session_state.show_evals:
+            st.subheader("🧪 Full Conversation Evaluation")
+            for idx, (q, a, e) in enumerate(evaluations):
+                with st.expander(f"Evaluation {idx + 1}", expanded=False):
+                    st.markdown(f"**Q:** {q}")
+                    st.markdown(f"**A:** {a}")
+                    st.info(e)
     else:
         st.warning("No Q&A pairs to evaluate.")
-
-# Show Evaluation Button (Hidden Initially)
-with st.sidebar:
-    eval_button = st.button("🔽 Show/Hide Evaluations", key="eval_button")
-    if eval_button:
-        st.session_state.show_evaluation = not st.session_state.get("show_evaluation", False)
-
-# If Show Evaluations is clicked, display evaluation content
-if "show_evaluation" in st.session_state and st.session_state.show_evaluation:
-    st.subheader("🧪 Evaluation Results")
-    for idx, (q, a, e) in enumerate(evaluations):
-        with st.expander(f"Evaluation {idx + 1}", expanded=False):
-            st.markdown(f"**Q:** {q}")
-            st.markdown(f"**A:** {a}")
-            st.info(e)
 
 # Input + File (Below Evaluation Results)
 with st.container():
@@ -166,7 +160,6 @@ if user_input:
     conversational_rag_chain = None
     context_string = "No PDF uploaded. Use chat history only."
 
-    # Process PDF Uploads and create the retriever if needed
     if uploaded_files:
         documents = []
         for uploaded_file in uploaded_files:
@@ -216,15 +209,24 @@ if user_input:
             response = llm.invoke(messages)
             assistant_reply = response.content
 
-        # Temporarily store the response
-        st.session_state.last_response = assistant_reply
+        # Display response
+        with st.chat_message("assistant"):
+            st.markdown(assistant_reply)
+
+        # Optional automatic evaluation (can be removed if only manual eval needed)
+        eval_messages = evaluation_prompt.format_messages(
+            question=user_input,
+            answer=assistant_reply,
+            context=context_string
+        )
+        eval_result = evaluator.invoke(eval_messages)
+        st.session_state.last_eval = eval_result.content
         st.session_state.last_question = user_input
-        st.session_state.last_context = context_string
+        st.session_state.last_answer = assistant_reply
 
         # Avoid double saving messages when using RAG
         if not conversational_rag_chain:
             session_history.add_user_message(user_input)
             session_history.add_ai_message(assistant_reply)
 
-        # Rerun after storing response and context
-        st.experimental_rerun()
+        st.rerun()

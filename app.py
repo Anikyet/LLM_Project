@@ -126,12 +126,21 @@ if st.sidebar.button("🔍 Evaluate Conversation"):
             evaluations.append((question, answer, eval_result.content))
 
     if evaluations:
-        st.subheader("🧪 Full Conversation Evaluation")
-        for idx, (q, a, e) in enumerate(evaluations):
-            with st.expander(f"Evaluation {idx + 1}", expanded=False):
-                st.markdown(f"**Q:** {q}")
-                st.markdown(f"**A:** {a}")
-                st.info(e)
+        if "show_evals" not in st.session_state:
+            st.session_state.show_evals = True
+
+        toggle_label = "👁️ Hide Evaluation" if st.session_state.show_evals else "👁️ Show Evaluation"
+        if st.sidebar.button(toggle_label):
+            st.session_state.show_evals = not st.session_state.show_evals
+            st.rerun()
+
+        if st.session_state.show_evals:
+            st.subheader("🧪 Full Conversation Evaluation")
+            for idx, (q, a, e) in enumerate(evaluations):
+                with st.expander(f"Evaluation {idx + 1}", expanded=False):
+                    st.markdown(f"**Q:** {q}")
+                    st.markdown(f"**A:** {a}")
+                    st.info(e)
     else:
         st.warning("No Q&A pairs to evaluate.")
 

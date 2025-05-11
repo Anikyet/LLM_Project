@@ -135,6 +135,21 @@ if st.sidebar.button("🔍 Evaluate Conversation"):
     else:
         st.warning("No Q&A pairs to evaluate.")
 
+# Show Evaluation Button (Hidden Initially)
+with st.sidebar:
+    eval_button = st.button("🔽 Show/Hide Evaluations", key="eval_button")
+    if eval_button:
+        st.session_state.show_evaluation = not st.session_state.get("show_evaluation", False)
+
+# If Show Evaluations is clicked, display evaluation content
+if "show_evaluation" in st.session_state and st.session_state.show_evaluation:
+    st.subheader("🧪 Evaluation Results")
+    for idx, (q, a, e) in enumerate(evaluations):
+        with st.expander(f"Evaluation {idx + 1}", expanded=False):
+            st.markdown(f"**Q:** {q}")
+            st.markdown(f"**A:** {a}")
+            st.info(e)
+
 # Input + File (Below Evaluation Results)
 with st.container():
     user_input = st.chat_input("Ask a question or upload PDF")

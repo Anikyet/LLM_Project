@@ -51,7 +51,7 @@ st.header(" _Hey, Good to see you here...._")
 st.subheader("How can I help you..?")
 
 # Sidebar
-st.sidebar.header(" Configuration")
+st.sidebar.header("🔐 Configuration")
 model_name = st.sidebar.selectbox("Select Open Source model", ["Gemma2-9b-It", "Deepseek-R1-Distill-Llama-70b", "Qwen-Qwq-32b", "Compound-Beta", "Llama3-70b-8192"], index=0)
 temperature = st.sidebar.slider("Creativity Level", 0.0, 1.0, 0.7)
 language = st.sidebar.selectbox("Select Language", ["English", "Hindi", "Hinglish", "French", "Spanish"], index=0)
@@ -65,7 +65,7 @@ if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
 session_id = st.session_state.session_id
 st.sidebar.text_input("Session ID", value=session_id, disabled=True)
-if st.sidebar.button(" New Session"):
+if st.sidebar.button("🔄 New Session"):
     st.session_state.session_id = str(uuid.uuid4())
     st.rerun()
 
@@ -77,14 +77,13 @@ if session_id not in st.session_state.store:
 
 # Prompt Templates
 contextualize_q_prompt = ChatPromptTemplate.from_messages([
-    ("system", "Given a chat history and the latest user question, "
-               "formulate a standalone question. Do NOT answer it."),
+    ("system", "Given a chat history and the latest user question, formulate a standalone question. Do NOT answer it."),
     MessagesPlaceholder("chat_history"),
     ("human", "{input}"),
 ])
 
 qa_prompt = ChatPromptTemplate.from_messages([
-    ("system", 
+    ("system",
      "You are a helpful assistant. Use the provided context to answer the question. "
      "Always respond to the user **in {language}**, regardless of the input language. "
      "If the language is 'Hinglish', respond in Hindi written using English (Roman) script. "
@@ -100,17 +99,23 @@ evaluation_prompt = ChatPromptTemplate.from_messages([
 ])
 
 # Display Chat History
+st.subheader("💬")
 chat_messages = st.session_state.store.get(session_id, ChatMessageHistory()).messages[-20:]
 for msg in chat_messages:
     role = "user" if type(msg).__name__ == "HumanMessage" else "assistant"
     with st.chat_message(role):
         st.markdown(msg.content)
 
+# Show last evaluation (persistent until next query)
+if "last_eval" in st.session_state:
+    with st.expander("🧪 Last Evaluation", expanded=True):
+        st.info(st.session_state.last_eval)
+
 # Input + File
 with st.container():
     user_input = st.chat_input("Ask a question or upload PDF")
 with st.container():
-    uploaded_files = st.file_uploader("\ud83d\udcc4", type="pdf", accept_multiple_files=True, label_visibility="collapsed")
+    uploaded_files = st.file_uploader("📄", type="pdf", accept_multiple_files=True, label_visibility="collapsed")
 
 # LLMs
 llm = ChatGroq(groq_api_key=api_key, model_name=model_name, temperature=temperature)
@@ -171,10 +176,11 @@ if user_input:
             response = llm.invoke(messages)
             assistant_reply = response.content
 
+        # Display response
         with st.chat_message("assistant"):
             st.markdown(assistant_reply)
 
-        # --- Automated Evaluation ---
+        # Automated Evaluation
         eval_messages = evaluation_prompt.format_messages(
             question=user_input,
             answer=assistant_reply,
@@ -186,9 +192,6 @@ if user_input:
         st.session_state.last_eval = eval_result.content
         st.session_state.last_question = user_input
         st.session_state.last_answer = assistant_reply
-
-        with st.expander("\ud83e\uddea Evaluation"):
-            st.info(eval_result.content)
 
         # Avoid double saving messages when using RAG
         if not conversational_rag_chain:

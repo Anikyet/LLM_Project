@@ -48,7 +48,7 @@ image = Image.open('image.png')
 # Streamlit UI
 st.set_page_config(page_title="Intelleq", layout="wide")
 
-col1, col2, col3 = st.columns([1, 3, 3])
+col1, col2 = st.columns([1, 7])
 # # Display the resized image
 # with col1:
 #     st.image(image, width=120, use_container_width=True)
@@ -64,10 +64,11 @@ with col1:
     st.image(image, width=80)  # Resize as needed
 
 with col2:
-    st.markdown("<h1 style='margin-bottom: 0;'>Intelleq</h1>", unsafe_allow_html=True)
-
-with col3:
-    st.markdown("<h3 style='color: #1f77b4; margin-top: 20px;'>- Your AI Assistant</h3>", unsafe_allow_html=True)
+    # Title and subheading in one <h1> tag with <p> for subheading
+    st.markdown("""
+    <h1 style='margin-bottom: 0;'>Intelleq</h1>
+    <p style='color: #1f77b4; margin-top: -10px;'>- Your AI Assistant</p>
+    """, unsafe_allow_html=True)
 
 
 # Sidebar for API key

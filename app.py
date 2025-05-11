@@ -98,39 +98,6 @@ evaluation_prompt = ChatPromptTemplate.from_messages([
     ("human", "Question: {question}\n\nAnswer: {answer}\n\nContext: {context}")
 ])
 
-# LLMs
-llm = ChatGroq(groq_api_key=api_key, model_name=model_name, temperature=temperature)
-evaluator = ChatGroq(groq_api_key=api_key, model_name=model_name, temperature=0)
-
-# Evaluation Display & Controls
-if "all_evaluations" not in st.session_state:
-    st.session_state.all_evaluations = []
-
-if st.session_state.all_evaluations:
-    with st.expander("🧪 Evaluation Results", expanded=True):
-        for idx, eval in enumerate(st.session_state.all_evaluations):
-            st.markdown(f"**{idx+1}.** {eval}")
-    if st.button("❌ Hide Evaluation Results"):
-        st.session_state.all_evaluations = []
-        st.rerun()
-
-if st.button("🧠 Run Evaluation on All Responses"):
-    evals = []
-    history = st.session_state.store[session_id].messages
-    for i in range(0, len(history)-1, 2):
-        user_msg = history[i].content
-        bot_msg = history[i+1].content
-        context = "No PDF uploaded. Use chat history only."  # Modify if you want to store actual context
-        eval_messages = evaluation_prompt.format_messages(
-            question=user_msg,
-            answer=bot_msg,
-            context=context
-        )
-        eval_result = evaluator.invoke(eval_messages)
-        evals.append(eval_result.content)
-    st.session_state.all_evaluations = evals
-    st.rerun()
-
 # Display Chat History
 st.subheader("💬")
 chat_messages = st.session_state.store.get(session_id, ChatMessageHistory()).messages[-20:]
@@ -139,11 +106,15 @@ for msg in chat_messages:
     with st.chat_message(role):
         st.markdown(msg.content)
 
-# Input + File Upload Area
+# Input + File
 with st.container():
     user_input = st.chat_input("Ask a question or upload PDF")
 with st.container():
     uploaded_files = st.file_uploader("📄", type="pdf", accept_multiple_files=True, label_visibility="collapsed")
+
+# LLMs
+llm = ChatGroq(groq_api_key=api_key, model_name=model_name, temperature=temperature)
+evaluator = ChatGroq(groq_api_key=api_key, model_name=model_name, temperature=0)
 
 # Handle Submission
 if user_input:
@@ -204,17 +175,38 @@ if user_input:
         with st.chat_message("assistant"):
             st.markdown(assistant_reply)
 
-        # Add messages
-        session_history.add_user_message(user_input)
-        session_history.add_ai_message(assistant_reply)
-
-        # Auto-Evaluation (store for reference)
-        eval_messages = evaluation_prompt.format_messages(
-            question=user_input,
-            answer=assistant_reply,
-            context=context_string
-        )
-        eval_result = evaluator.invoke(eval_messages)
-        st.session_state.all_evaluations.append(eval_result.content)
+        # Avoid double saving messages when using RAG
+        if not conversational_rag_chain:
+            session_history.add_user_message(user_input)
+            session_history.add_ai_message(assistant_reply)
 
         st.rerun()
+
+# Manual Evaluation Button
+if st.sidebar.button("🔍 Evaluate Conversation"):
+    session_history = st.session_state.store.get(session_id, ChatMessageHistory()).messages
+    evaluations = []
+
+    for i in range(0, len(session_history) - 1, 2):
+        if type(session_history[i]).__name__ == "HumanMessage" and type(session_history[i + 1]).__name__ == "AIMessage":
+            question = session_history[i].content
+            answer = session_history[i + 1].content
+            context = "No PDF uploaded. Use chat history only."
+
+            eval_messages = evaluation_prompt.format_messages(
+                question=question,
+                answer=answer,
+                context=context
+            )
+            eval_result = evaluator.invoke(eval_messages)
+            evaluations.append((question, answer, eval_result.content))
+
+    if evaluations:
+        st.subheader("🧪 Full Conversation Evaluation")
+        for idx, (q, a, e) in enumerate(evaluations):
+            with st.expander(f"Evaluation {idx + 1}"):
+                st.markdown(f"**Q:** {q}")
+                st.markdown(f"**A:** {a}")
+                st.info(e)
+    else:
+        st.warning("No Q&A pairs to evaluate.")

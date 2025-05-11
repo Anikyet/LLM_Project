@@ -67,7 +67,7 @@ with col2:
     # Title and subheading on the same line using <span> and inline styles
     st.markdown("""
     <h1 style='display: inline; margin-bottom: 0;'>Intelleq
-    <span style='color: #1f77b4; font-size: .5em; display: inline; margin-left: 10px;'>- Your AI Assistant</span>
+    <span style='color: #1f77b4; font-size: .9em; display: inline; margin-left: 10px;'>- Your AI Assistant</span>
     </h1>
     """, unsafe_allow_html=True)
 

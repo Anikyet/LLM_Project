@@ -106,7 +106,36 @@ for msg in chat_messages:
     with st.chat_message(role):
         st.markdown(msg.content)
 
-# Input + File
+# Evaluate All Button (in sidebar)
+if st.sidebar.button("🔍 Evaluate Conversation"):
+    session_history = st.session_state.store.get(session_id, ChatMessageHistory()).messages
+    evaluations = []
+
+    for i in range(0, len(session_history) - 1, 2):
+        if type(session_history[i]).__name__ == "HumanMessage" and type(session_history[i + 1]).__name__ == "AIMessage":
+            question = session_history[i].content
+            answer = session_history[i + 1].content
+            context = "No PDF uploaded. Use chat history only."
+
+            eval_messages = evaluation_prompt.format_messages(
+                question=question,
+                answer=answer,
+                context=context
+            )
+            eval_result = ChatGroq(groq_api_key=api_key, model_name=model_name, temperature=0).invoke(eval_messages)
+            evaluations.append((question, answer, eval_result.content))
+
+    if evaluations:
+        st.subheader("🧪 Full Conversation Evaluation")
+        for idx, (q, a, e) in enumerate(evaluations):
+            with st.expander(f"Evaluation {idx + 1}", expanded=False):
+                st.markdown(f"**Q:** {q}")
+                st.markdown(f"**A:** {a}")
+                st.info(e)
+    else:
+        st.warning("No Q&A pairs to evaluate.")
+
+# Input + File (Below Evaluation Results)
 with st.container():
     user_input = st.chat_input("Ask a question or upload PDF")
 with st.container():
@@ -175,38 +204,20 @@ if user_input:
         with st.chat_message("assistant"):
             st.markdown(assistant_reply)
 
+        # Optional automatic evaluation (can be removed if only manual eval needed)
+        eval_messages = evaluation_prompt.format_messages(
+            question=user_input,
+            answer=assistant_reply,
+            context=context_string
+        )
+        eval_result = evaluator.invoke(eval_messages)
+        st.session_state.last_eval = eval_result.content
+        st.session_state.last_question = user_input
+        st.session_state.last_answer = assistant_reply
+
         # Avoid double saving messages when using RAG
         if not conversational_rag_chain:
             session_history.add_user_message(user_input)
             session_history.add_ai_message(assistant_reply)
 
         st.rerun()
-
-# Manual Evaluation Button
-if st.sidebar.button("🔍 Evaluate Conversation"):
-    session_history = st.session_state.store.get(session_id, ChatMessageHistory()).messages
-    evaluations = []
-
-    for i in range(0, len(session_history) - 1, 2):
-        if type(session_history[i]).__name__ == "HumanMessage" and type(session_history[i + 1]).__name__ == "AIMessage":
-            question = session_history[i].content
-            answer = session_history[i + 1].content
-            context = "No PDF uploaded. Use chat history only."
-
-            eval_messages = evaluation_prompt.format_messages(
-                question=question,
-                answer=answer,
-                context=context
-            )
-            eval_result = evaluator.invoke(eval_messages)
-            evaluations.append((question, answer, eval_result.content))
-
-    if evaluations:
-        st.subheader("🧪 Full Conversation Evaluation")
-        for idx, (q, a, e) in enumerate(evaluations):
-            with st.expander(f"Evaluation {idx + 1}"):
-                st.markdown(f"**Q:** {q}")
-                st.markdown(f"**A:** {a}")
-                st.info(e)
-    else:
-        st.warning("No Q&A pairs to evaluate.")

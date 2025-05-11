@@ -50,17 +50,11 @@ st.sidebar.header("🔐 Configuration")
 model_name=st.sidebar.selectbox("Select Open Source model",["Gemma2-9b-It","Mistral-Saba-24b","Llama3-70b-8192"],index=0)
 ## Adjust response parameter
 temperature=st.sidebar.slider("Temperature",min_value=0.0,max_value=1.0,value=0.7)
-
+language = st.sidebar.selectbox("Select Language", ["English", "Hindi", "French", "Spanish"], index=0)
+st.session_state.language = language
 if not api_key:
     st.warning("Please enter the Groq API Key to continue.")
     st.stop()
-
-# Session ID for chat history
-# session_id = st.sidebar.text_input("Session ID", value="default_session")
-# if 'store' not in st.session_state:
-#     st.session_state.store = {}
-# if session_id not in st.session_state.store:
-#     st.session_state.store[session_id] = ChatMessageHistory()
 
 # Auto-generate session ID per user
 if "session_id" not in st.session_state:
@@ -87,11 +81,21 @@ contextualize_q_prompt = ChatPromptTemplate.from_messages([
     MessagesPlaceholder("chat_history"),
     ("human", "{input}"),
 ])
+# qa_prompt = ChatPromptTemplate.from_messages([
+#     ("system", "You are an assistant. Use the following context to answer concisely.\n\n{context}"),
+#     MessagesPlaceholder("chat_history"),
+#     ("human", "{input}"),
+# ])
+
 qa_prompt = ChatPromptTemplate.from_messages([
-    ("system", "You are an assistant. Use the following context to answer concisely.\n\n{context}"),
+    ("system", 
+     "You are a helpful assistant. Use the provided context to answer the question. "
+     "Always respond to the user **in {language}**, regardless of the input language. "
+     "Be concise, clear, and informative.\n\nContext:\n{context}"),
     MessagesPlaceholder("chat_history"),
     ("human", "{input}"),
 ])
+
 
 # Chat history section at the top
 st.subheader("💬")
@@ -152,19 +156,28 @@ if user_input:
 
     with st.spinner("Thinking..."):
         if conversational_rag_chain:
+            # response = conversational_rag_chain.invoke(
+            #     {"input": user_input},
+            #     config={"configurable": {"session_id": session_id}},
+            # )
+            # assistant_reply = response['answer']
             response = conversational_rag_chain.invoke(
-                {"input": user_input},
-                config={"configurable": {"session_id": session_id}},
-            )
+                            {"input": user_input, "language": st.session_state.language},
+                                config={"configurable": {"session_id": session_id}},
+                            )
             assistant_reply = response['answer']
         else:
+            # Inject language preference into the prompt
+            language_prefixed_input = f"Please answer the following question in {st.session_state.language}:\n{user_input}"
+
             messages = qa_prompt.format_messages(
-                input=user_input,
+                input=language_prefixed_input,
                 chat_history=session_history.messages,
                 context="No PDF uploaded. Use chat history only."
             )
             response = llm.invoke(messages)
             assistant_reply = response.content
+            
             # Add to chat history immediately (response will now appear at top)
             session_history.add_user_message(user_input)
             session_history.add_ai_message(assistant_reply)

@@ -48,12 +48,14 @@ image = Image.open('image.png')
 # Streamlit UI
 st.set_page_config(page_title="Intelleq", layout="wide")
 
-col1, col2 = st.columns([1, 9])
+col1, col2, col3 = st.columns([1, 3, 7])
 # Display the resized image
 with col1:
     st.image(image, width=120, use_container_width=True)
 with col2:
     st.title("Intelleq")
+with col3:
+    st.text(":blue[ _Your AI Assistant_]")
 st.divider()
 st.header(" _Hey, Good to see you here...._")
 st.subheader("How can i help you..?")

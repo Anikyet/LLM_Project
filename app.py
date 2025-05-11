@@ -65,7 +65,7 @@ if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
 session_id = st.session_state.session_id
 st.sidebar.text_input("Session ID", value=session_id, disabled=True)
-if st.sidebar.button("\ud83d\udd04 New Session"):
+if st.sidebar.button(" New Session"):
     st.session_state.session_id = str(uuid.uuid4())
     st.rerun()
 

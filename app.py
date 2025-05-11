@@ -92,12 +92,6 @@ qa_prompt = ChatPromptTemplate.from_messages([
     ("human", "{input}"),
 ])
 
-evaluation_prompt = ChatPromptTemplate.from_messages([
-    ("system", "You are an evaluator. Given a question, the assistant's answer, and the context used to generate it, "
-               "rate the quality of the answer from 1 (poor) to 5 (excellent). Provide a brief justification."),
-    ("human", "Question: {question}\n\nAnswer: {answer}\n\nContext: {context}")
-])
-
 # Display Chat History
 st.subheader("💬")
 chat_messages = st.session_state.store.get(session_id, ChatMessageHistory()).messages[-20:]
@@ -119,7 +113,6 @@ with st.container():
 
 # LLMs
 llm = ChatGroq(groq_api_key=api_key, model_name=model_name, temperature=temperature)
-evaluator = ChatGroq(groq_api_key=api_key, model_name=model_name, temperature=0)
 
 # Handle Submission
 if user_input:
@@ -180,22 +173,19 @@ if user_input:
         with st.chat_message("assistant"):
             st.markdown(assistant_reply)
 
-        # Automated Evaluation
-        eval_messages = evaluation_prompt.format_messages(
-            question=user_input,
-            answer=assistant_reply,
-            context=context_string
-        )
-        eval_result = evaluator.invoke(eval_messages)
+        # Manual Evaluation Section
+        with st.expander("🧪 Manual Evaluation", expanded=True):
+            evaluation_score = st.slider("Rate the assistant's response", 1, 5, 5)
+            justification = st.text_area("Provide a justification for your rating:")
+            submit_eval = st.button("Submit Evaluation")
 
-        # Persist evaluation result
-        st.session_state.last_eval = eval_result.content
-        st.session_state.last_question = user_input
-        st.session_state.last_answer = assistant_reply
+            if submit_eval:
+                eval_result = f"Rating: {evaluation_score}/5\nJustification: {justification}"
+                st.session_state.last_eval = eval_result
+                st.success("Evaluation submitted successfully!")
 
-        # Avoid double saving messages when using RAG
-        if not conversational_rag_chain:
-            session_history.add_user_message(user_input)
-            session_history.add_ai_message(assistant_reply)
+        # Store in chat history
+        session_history.add_user_message(user_input)
+        session_history.add_ai_message(assistant_reply)
 
         st.rerun()

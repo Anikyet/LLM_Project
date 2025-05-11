@@ -64,10 +64,10 @@ with col1:
     st.image(image, width=120)  # Resize as needed
 
 with col2:
-    # Title and subheading on the same line using <span>
+    # Title and subheading on the same line using <span> and inline styles
     st.markdown("""
-    <h1 style='margin-bottom: 0; display: inline; vertical-align: middle;'>Intelleq</h1>
-    <span style='color: #1f77b4; font-size: 1.2em; display: inline; vertical-align: middle; margin-left: 10px;'>- Your AI Assistant</span>
+    <h1 style='display: inline; margin-bottom: 0;'>Intelleq</h1>
+    <span style='color: #1f77b4; font-size: 1.2em; display: inline; margin-left: 10px;'>- Your AI Assistant</span>
     """, unsafe_allow_html=True)
 
 # Sidebar for API key

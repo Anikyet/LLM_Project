@@ -167,13 +167,11 @@ if user_input:
                             )
             assistant_reply = response['answer']
         else:
-            # Inject language preference into the prompt
-            language_prefixed_input = f"Please answer the following question in {st.session_state.language}:\n{user_input}"
-
             messages = qa_prompt.format_messages(
-                input=language_prefixed_input,
+                input=user_input,
                 chat_history=session_history.messages,
-                context="No PDF uploaded. Use chat history only."
+                context="No PDF uploaded. Use chat history only.",
+                language=st.session_state.language,  # ✅ This is the missing part
             )
             response = llm.invoke(messages)
             assistant_reply = response.content

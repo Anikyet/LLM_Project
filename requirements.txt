@@ -29,3 +29,7 @@ pysqlite3-binary
 sentence-transformers
 huggingface_hub
 Pillow
+evaluate
+nltk
+rouge-score
+bert-score

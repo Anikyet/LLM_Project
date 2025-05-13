@@ -77,6 +77,13 @@ if 'store' not in st.session_state:
     st.session_state.store = {}
 if session_id not in st.session_state.store:
     st.session_state.store[session_id] = ChatMessageHistory()
+llms = {
+    "Gemma2-9b-It": ChatGroq(groq_api_key=api_key, model_name="gemma-2-9b-it", temperature=temperature),
+    "Deepseek-R1-Distill-Llama-70b": ChatGroq(groq_api_key=api_key, model_name="deepseek-llm-r1-distill", temperature=temperature),
+    "Qwen-Qwq-32b": ChatGroq(groq_api_key=api_key, model_name="qwen-qwen1.5-32b", temperature=temperature),
+    "Compound-Beta": ChatGroq(groq_api_key=api_key, model_name="mixtral-8x7b-32768", temperature=temperature),
+    "Llama3-70b-8192": ChatGroq(groq_api_key=api_key, model_name="llama3-70b-8192", temperature=temperature),
+}
 
 # Prompts
 contextualize_q_prompt = ChatPromptTemplate.from_messages([

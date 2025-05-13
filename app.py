@@ -1,4 +1,3 @@
-# (Keep all imports as you have them)
 import streamlit as st
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
@@ -19,6 +18,7 @@ import sys
 import pysqlite3
 from PIL import Image
 
+# SQLite fix
 sys.modules["sqlite3"] = pysqlite3
 
 # Load env variables
@@ -43,8 +43,6 @@ with col2:
     st.markdown("""<h1 >Intelleq
     <span style='color: #1f77b4; font-size: .7em;  margin-left: 10px;'>- Your AI Assistant</span>
     </h1>""", unsafe_allow_html=True)
-st.header(" _Hey, Good to see you here...._")
-st.subheader("How can I help you..?")
 
 # Sidebar
 st.sidebar.header("🔐 Configuration")
@@ -99,124 +97,100 @@ evaluation_prompt = ChatPromptTemplate.from_messages([
     ("human", "Question: {question}\n\nAnswer: {answer}\n\nContext: {context}")
 ])
 
-# Show Chat History
-st.subheader("💬")
-chat_messages = st.session_state.store.get(session_id, ChatMessageHistory()).messages[-20:]
-for msg in chat_messages:
-    role = "user" if type(msg).__name__ == "HumanMessage" else "assistant"
-    with st.chat_message(role):
-        st.markdown(msg.content)
-
-# Evaluator
-evaluator = ChatGroq(groq_api_key=api_key, model_name=selected_models[0], temperature=0)
-
-# Evaluate entire conversation
-if st.sidebar.button("🔍 Evaluate Entire Conversation"):
-    session_history = st.session_state.store.get(session_id, ChatMessageHistory()).messages
-    full_conversation = ""
-    for msg in session_history:
-        role = "User" if type(msg).__name__ == "HumanMessage" else "Assistant"
-        full_conversation += f"{role}: {msg.content}\n"
-
-    eval_messages = evaluation_prompt.format_messages(
-        question="Entire conversation",
-        answer="Evaluate the entire conversation",
-        context=full_conversation
-    )
-    try:
-        eval_result = evaluator.invoke(eval_messages)
-    except Exception as e:
-        st.error(f"Error occurred during evaluation: {e}")
-        st.stop()
-
-    if st.toggle("🔍 Show Evaluation Result", value=True):
-        st.subheader("🧪 Full Conversation Evaluation")
-        with st.expander("📜 Full conversation context", expanded=False):
-            st.text(full_conversation)
-        st.info(eval_result.content)
-
-# Chat + File Upload
-with st.container():
-    user_input = st.chat_input("Ask a question or upload PDF")
-with st.container():
-    uploaded_files = st.file_uploader("📄", type="pdf", accept_multiple_files=True, label_visibility="collapsed")
-
 # Init LLMs
 llms = {model: ChatGroq(groq_api_key=api_key, model_name=model, temperature=temperature) for model in selected_models}
+evaluator = ChatGroq(groq_api_key=api_key, model_name=selected_models[0], temperature=0)
 
-if user_input:
-    session_history = st.session_state.store.get(session_id, ChatMessageHistory())
-    context_string = "No PDF uploaded. Use chat history only."
+# User Input Area (Always Fixed at Bottom)
+with st.container():
+    user_input = st.chat_input("Ask a question or upload PDF")
+    uploaded_files = st.file_uploader("📄 Upload PDF", type="pdf", accept_multiple_files=True, label_visibility="collapsed")
 
-    # Load and split PDF
-    if uploaded_files:
-        documents = []
-        for uploaded_file in uploaded_files:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-                tmp.write(uploaded_file.getvalue())
-                temp_pdf = tmp.name
-            loader = PyPDFLoader(temp_pdf)
-            documents.extend(loader.load())
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=5000, chunk_overlap=500)
-        splits = text_splitter.split_documents(documents)
-        vectorstore = Chroma.from_documents(splits, embedding=embeddings, persist_directory=None, collection_name=f"temp_{session_id}")
-        retriever = vectorstore.as_retriever()
-        context_string = "\n\n".join(doc.page_content for doc in splits[:3])
+# Display scrollable chat history and LLM responses above the input
+with st.container():
+    with st.container():
+        st.markdown("""<div style='height: 500px; overflow-y: auto; padding-right:10px;'>""", unsafe_allow_html=True)
 
-    col1, col2 = st.columns(2) if len(selected_models) == 2 else (st.container(), None)
+        chat_messages = st.session_state.store.get(session_id, ChatMessageHistory()).messages[-20:]
+        for msg in chat_messages:
+            role = "user" if type(msg).__name__ == "HumanMessage" else "assistant"
+            with st.chat_message(role):
+                st.markdown(msg.content)
 
-    for i, model_name in enumerate(selected_models):
-        model = llms[model_name]
-        with (col1 if i == 0 else col2):
-            st.markdown(f"### 🤖 Response from `{model_name}`")
-            with st.spinner(f"Thinking with {model_name}..."):
-                if uploaded_files:
-                    history_aware_retriever = create_history_aware_retriever(model, retriever, contextualize_q_prompt)
-                    question_answer_chain = create_stuff_documents_chain(model, qa_prompt)
-                    rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
+        st.markdown("</div>", unsafe_allow_html=True)
 
-                    def get_session_history(session: str) -> BaseChatMessageHistory:
-                        if session not in st.session_state.store:
-                            st.session_state.store[session] = ChatMessageHistory()
-                        return st.session_state.store[session]
+    if user_input:
+        session_history = st.session_state.store[session_id]
+        context_string = "No PDF uploaded. Use chat history only."
 
-                    conversational_rag_chain = RunnableWithMessageHistory(
-                        rag_chain,
-                        get_session_history,
-                        input_messages_key="input",
-                        history_messages_key="chat_history",
-                        output_messages_key="answer",
+        # Load and split PDFs
+        if uploaded_files:
+            documents = []
+            for uploaded_file in uploaded_files:
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+                    tmp.write(uploaded_file.getvalue())
+                    temp_pdf = tmp.name
+                loader = PyPDFLoader(temp_pdf)
+                documents.extend(loader.load())
+            text_splitter = RecursiveCharacterTextSplitter(chunk_size=5000, chunk_overlap=500)
+            splits = text_splitter.split_documents(documents)
+            vectorstore = Chroma.from_documents(splits, embedding=embeddings, persist_directory=None, collection_name=f"temp_{session_id}")
+            retriever = vectorstore.as_retriever()
+            context_string = "\n\n".join(doc.page_content for doc in splits[:3])
+
+        col1, col2 = st.columns(2) if len(selected_models) == 2 else (st.container(), None)
+
+        for i, model_name in enumerate(selected_models):
+            model = llms[model_name]
+            with (col1 if i == 0 else col2):
+                st.markdown(f"### 🤖 Response from `{model_name}`")
+                with st.spinner(f"Thinking with {model_name}..."):
+                    if uploaded_files:
+                        history_aware_retriever = create_history_aware_retriever(model, retriever, contextualize_q_prompt)
+                        question_answer_chain = create_stuff_documents_chain(model, qa_prompt)
+                        rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
+
+                        def get_session_history(session: str) -> BaseChatMessageHistory:
+                            if session not in st.session_state.store:
+                                st.session_state.store[session] = ChatMessageHistory()
+                            return st.session_state.store[session]
+
+                        conversational_rag_chain = RunnableWithMessageHistory(
+                            rag_chain,
+                            get_session_history,
+                            input_messages_key="input",
+                            history_messages_key="chat_history",
+                            output_messages_key="answer",
+                        )
+
+                        response = conversational_rag_chain.invoke(
+                            {"input": user_input, "language": st.session_state.language},
+                            config={"configurable": {"session_id": session_id}},
+                        )
+                        assistant_reply = response['answer']
+                    else:
+                        messages = qa_prompt.format_messages(
+                            input=user_input,
+                            chat_history=session_history.messages,
+                            context=context_string,
+                            language=st.session_state.language,
+                        )
+                        response = model.invoke(messages)
+                        assistant_reply = response.content
+                        session_history.add_user_message(user_input)
+                        session_history.add_ai_message(assistant_reply)
+
+                    st.markdown(assistant_reply)
+
+                    # Evaluation
+                    eval_messages = evaluation_prompt.format_messages(
+                        question=user_input,
+                        answer=assistant_reply,
+                        context=context_string
                     )
-
-                    response = conversational_rag_chain.invoke(
-                        {"input": user_input, "language": st.session_state.language},
-                        config={"configurable": {"session_id": session_id}},
-                    )
-                    assistant_reply = response['answer']
-                else:
-                    messages = qa_prompt.format_messages(
-                        input=user_input,
-                        chat_history=session_history.messages,
-                        context=context_string,
-                        language=st.session_state.language,
-                    )
-                    response = model.invoke(messages)
-                    assistant_reply = response.content
-                    session_history.add_user_message(user_input)
-                    session_history.add_ai_message(assistant_reply)
-
-                st.markdown(assistant_reply)
-
-                eval_messages = evaluation_prompt.format_messages(
-                    question=user_input,
-                    answer=assistant_reply,
-                    context=context_string
-                )
-                try:
-                    eval_result = evaluator.invoke(eval_messages)
-                    with st.expander("🧪 Evaluation Result", expanded=False):
-                        st.info(eval_result.content)
-                except Exception as e:
-                    st.warning(f"Evaluation failed: {e}")
-
-   
+                    try:
+                        eval_result = evaluator.invoke(eval_messages)
+                        with st.expander("🧪 Evaluation Result", expanded=False):
+                            st.info(eval_result.content)
+                    except Exception as e:
+                        st.warning(f"Evaluation failed: {e}")

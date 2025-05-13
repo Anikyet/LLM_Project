@@ -98,7 +98,10 @@ evaluation_prompt = ChatPromptTemplate.from_messages([
     ("human", "Question: {question}\n\nAnswer: {answer}\n\nContext: {context}")
 ])
 
-# Show Chat History
+# Evaluator
+evaluator = ChatGroq(groq_api_key=api_key, model_name=selected_models[0], temperature=0)
+
+# Show Chat History and Model Responses (above user input)
 st.subheader("💬")
 chat_messages = st.session_state.store.get(session_id, ChatMessageHistory()).messages[-20:]
 for msg in chat_messages:
@@ -106,42 +109,24 @@ for msg in chat_messages:
     with st.chat_message(role):
         st.markdown(msg.content)
 
-# Evaluator
-evaluator = ChatGroq(groq_api_key=api_key, model_name=selected_models[0], temperature=0)
+# Show the model responses (above user input field)
+with st.container():
+    col1, col2 = st.columns(2) if len(selected_models) == 2 else (st.container(), None)
 
-# Evaluate entire conversation
-if st.sidebar.button("🔍 Evaluate Entire Conversation"):
-    session_history = st.session_state.store.get(session_id, ChatMessageHistory()).messages
-    full_conversation = ""
-    for msg in session_history:
-        role = "User" if type(msg).__name__ == "HumanMessage" else "Assistant"
-        full_conversation += f"{role}: {msg.content}\n"
+    for i, model_name in enumerate(selected_models):
+        model = llms[model_name]
+        with (col1 if i == 0 else col2):
+            st.markdown(f"### 🤖 Response from {model_name}")
+            with st.spinner(f"Thinking with {model_name}..."):
+                # Your model response logic here (PDF or chat history)
+                st.markdown(assistant_reply)
 
-    eval_messages = evaluation_prompt.format_messages(
-        question="Entire conversation",
-        answer="Evaluate the entire conversation",
-        context=full_conversation
-    )
-    try:
-        eval_result = evaluator.invoke(eval_messages)
-    except Exception as e:
-        st.error(f"Error occurred during evaluation: {e}")
-        st.stop()
-
-    if st.toggle("🔍 Show Evaluation Result", value=True):
-        st.subheader("🧪 Full Conversation Evaluation")
-        with st.expander("📜 Full conversation context", expanded=False):
-            st.text(full_conversation)
-        st.info(eval_result.content)
-
-
-# Init LLMs
-llms = {model: ChatGroq(groq_api_key=api_key, model_name=model, temperature=temperature) for model in selected_models}
 # Chat + File Upload
 with st.container():
     user_input = st.chat_input("Ask a question or upload PDF")
-with st.container():
-    uploaded_files = st.file_uploader("📄", type="pdf", accept_multiple_files=True, label_visibility="collapsed")
+
+# File Upload and model response handling
+uploaded_files = st.file_uploader("📄", type="pdf", accept_multiple_files=True, label_visibility="collapsed")
 
 if user_input:
     session_history = st.session_state.store.get(session_id, ChatMessageHistory())
@@ -211,5 +196,3 @@ if user_input:
                     answer=assistant_reply,
                     context=context_string
                 )
-               
-

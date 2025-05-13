@@ -205,7 +205,8 @@ if user_input:
                     assistant_reply = response.content
                     session_history.add_user_message(user_input)
                     session_history.add_ai_message(assistant_reply)
-
+                if max_selections == 1:
+                    st.rerunn()
                 st.markdown(assistant_reply)
 
                 eval_messages = evaluation_prompt.format_messages(

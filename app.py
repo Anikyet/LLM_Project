@@ -20,26 +20,6 @@ from PIL import Image
 
 sys.modules["sqlite3"] = pysqlite3
 
-st.markdown("""
-    <style>
-        .chat-input-container {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background-color: white;
-            padding: 0.5rem 1rem;
-            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
-            z-index: 9999;
-        }
-        .block-container {
-            padding-bottom: 100px;  /* Prevent chat content from being hidden */
-        }
-        footer {
-            visibility: hidden;
-        }
-    </style>
-""", unsafe_allow_html=True)
 
 # Load env variables
 load_dotenv()
@@ -159,13 +139,11 @@ if st.sidebar.button("🔍 Evaluate Entire Conversation"):
 # Init LLMs
 llms = {model: ChatGroq(groq_api_key=api_key, model_name=model, temperature=temperature) for model in selected_models}
 
-# Floating Chat Input + File Upload
-st.markdown('<div class="chat-input-container">', unsafe_allow_html=True)
-user_input = st.chat_input("Ask a question or upload PDF")
-st.markdown('</div>', unsafe_allow_html=True)
-
-# File uploader remains normal (not floating)
-uploaded_files = st.file_uploader("📄", type="pdf", accept_multiple_files=True, label_visibility="collapsed")
+# Chat + File Upload
+with st.container():
+    user_input = st.chat_input("Ask a question or upload PDF")
+with st.container():
+    uploaded_files = st.file_uploader("📄", type="pdf", accept_multiple_files=True, label_visibility="collapsed")
 
 if user_input:
     session_history = st.session_state.store.get(session_id, ChatMessageHistory())

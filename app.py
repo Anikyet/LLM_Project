@@ -211,10 +211,5 @@ if user_input:
                     answer=assistant_reply,
                     context=context_string
                 )
-                try:
-                    eval_result = evaluator.invoke(eval_messages)
-                    with st.expander("🧪 Evaluation Result", expanded=False):
-                        st.info(eval_result.content)
-                except Exception as e:
-                    st.warning(f"Evaluation failed: {e}")
+               
 

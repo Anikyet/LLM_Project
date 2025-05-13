@@ -137,6 +137,11 @@ if st.sidebar.button("🔍 Evaluate Entire Conversation"):
 
 # Init LLMs
 llms = {model: ChatGroq(groq_api_key=api_key, model_name=model, temperature=temperature) for model in selected_models}
+# Chat + File Upload
+with st.container():
+    user_input = st.chat_input("Ask a question or upload PDF")
+with st.container():
+    uploaded_files = st.file_uploader("📄", type="pdf", accept_multiple_files=True, label_visibility="collapsed")
 
 if user_input:
     session_history = st.session_state.store.get(session_id, ChatMessageHistory())
@@ -213,8 +218,3 @@ if user_input:
                 except Exception as e:
                     st.warning(f"Evaluation failed: {e}")
 
-# Chat + File Upload
-with st.container():
-    user_input = st.chat_input("Ask a question or upload PDF")
-with st.container():
-    uploaded_files = st.file_uploader("📄", type="pdf", accept_multiple_files=True, label_visibility="collapsed")

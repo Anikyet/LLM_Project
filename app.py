@@ -20,7 +20,8 @@ from PIL import Image
 
 sys.modules["sqlite3"] = pysqlite3
 
-# Load environment variables
+
+# Load env variables
 load_dotenv()
 os.environ['HF_TOKEN'] = st.secrets["HF_TOKEN"]
 os.environ["LANGCHAIN_API_KEY"] = st.secrets["LANGCHAIN_API_KEY"]
@@ -29,10 +30,7 @@ os.environ["LANGCHAIN_PROJECT"] = st.secrets["LANGCHAIN_PROJECT"]
 api_key = st.secrets["GROQ_API_KEY"]
 
 # Embeddings
-embeddings = HuggingFaceEmbeddings(
-    model_name="all-MiniLM-L6-v2",
-    model_kwargs={"device": "cpu"}
-)
+embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2", model_kwargs={"device": "cpu"})
 
 # UI Setup
 image = Image.open('image.png')
@@ -50,7 +48,16 @@ st.subheader("How can I help you..?")
 
 # Sidebar
 st.sidebar.header("🔐 Configuration")
-model_name = st.sidebar.selectbox("Select Open Source model", ["Gemma2-9b-It", "Deepseek-R1-Distill-Llama-70b", "Qwen-Qwq-32b", "Compound-Beta", "Llama3-70b-8192"], index=0)
+selected_models = st.sidebar.multiselect(
+    "Select one or two Open Source models",
+    ["Gemma2-9b-It", "Deepseek-R1-Distill-Llama-70b", "Qwen-Qwq-32b", "Compound-Beta", "Llama3-70b-8192"],
+    default=["Gemma2-9b-It"],
+    max_selections=2
+)
+if not selected_models:
+    st.warning("Please select at least one model.")
+    st.stop()
+
 temperature = st.sidebar.slider("Creativity Level", 0.0, 1.0, 0.7)
 language = st.sidebar.selectbox("Select Language", ["English", "Hindi", "Hinglish", "French", "Spanish"], index=0)
 st.session_state.language = language
@@ -67,94 +74,82 @@ if st.sidebar.button("🔄 New Session"):
     st.session_state.session_id = str(uuid.uuid4())
     st.rerun()
 
-# Chat History
 if 'store' not in st.session_state:
     st.session_state.store = {}
 if session_id not in st.session_state.store:
     st.session_state.store[session_id] = ChatMessageHistory()
 
-# Prompt Templates
+# Prompts
 contextualize_q_prompt = ChatPromptTemplate.from_messages([
     ("system", "Given a chat history and the latest user question, formulate a standalone question. Do NOT answer it."),
     MessagesPlaceholder("chat_history"),
     ("human", "{input}"),
 ])
-
 qa_prompt = ChatPromptTemplate.from_messages([
-    ("system",
-     "You are a helpful assistant. Use the provided context to answer the question. "
+    ("system", "You are a helpful assistant. Use the provided context to answer the question. "
      "Always respond to the user **in {language}**, regardless of the input language. "
      "If the language is 'Hinglish', respond in Hindi written using English (Roman) script. "
      "Be concise, clear, and informative.\n\nContext:\n{context}"),
     MessagesPlaceholder("chat_history"),
     ("human", "{input}"),
 ])
-
 evaluation_prompt = ChatPromptTemplate.from_messages([
     ("system", "You are an evaluator. Given a question, the assistant's answer, and the context used to generate it, "
                "rate the quality of the answer from 1 (poor) to 5 (excellent). Provide a brief justification."),
     ("human", "Question: {question}\n\nAnswer: {answer}\n\nContext: {context}")
 ])
 
-# Display Chat History
+# Show Chat History
 st.subheader("💬")
 chat_messages = st.session_state.store.get(session_id, ChatMessageHistory()).messages[-20:]
 for msg in chat_messages:
     role = "user" if type(msg).__name__ == "HumanMessage" else "assistant"
     with st.chat_message(role):
         st.markdown(msg.content)
-# Initialize evaluator with the same API key and model name
-evaluator = ChatGroq(groq_api_key=api_key, model_name=model_name, temperature=0)
 
-# Evaluate Entire Conversation Button
+# Evaluator
+evaluator = ChatGroq(groq_api_key=api_key, model_name=selected_models[0], temperature=0)
+
+# Evaluate entire conversation
 if st.sidebar.button("🔍 Evaluate Entire Conversation"):
     session_history = st.session_state.store.get(session_id, ChatMessageHistory()).messages
     full_conversation = ""
-    
     for msg in session_history:
         role = "User" if type(msg).__name__ == "HumanMessage" else "Assistant"
         full_conversation += f"{role}: {msg.content}\n"
-    
-    # Use the entire conversation as context for evaluation
+
     eval_messages = evaluation_prompt.format_messages(
-        question="Entire conversation",  # The question is now a placeholder for the entire conversation
-        answer="Evaluate the entire conversation",  # We evaluate the whole conversation
-        context=full_conversation  # Pass the full conversation history as context
+        question="Entire conversation",
+        answer="Evaluate the entire conversation",
+        context=full_conversation
     )
-    
-    # Use try-except to catch and print any errors during the invocation
     try:
         eval_result = evaluator.invoke(eval_messages)
     except Exception as e:
         st.error(f"Error occurred during evaluation: {e}")
         st.stop()
-    
-    # Toggle to show/hide evaluation
-    show_eval = st.toggle("🔍 Show Evaluation Result", value=True)
-    
-    if show_eval:
+
+    if st.toggle("🔍 Show Evaluation Result", value=True):
         st.subheader("🧪 Full Conversation Evaluation")
         with st.expander("📜 Full conversation context", expanded=False):
             st.text(full_conversation)
         st.info(eval_result.content)
 
 
-# Input + File (Below Evaluation Results)
+# Init LLMs
+llms = {model: ChatGroq(groq_api_key=api_key, model_name=model, temperature=temperature) for model in selected_models}
+
+# Chat + File Upload
 with st.container():
     user_input = st.chat_input("Ask a question or upload PDF")
 with st.container():
     uploaded_files = st.file_uploader("📄", type="pdf", accept_multiple_files=True, label_visibility="collapsed")
 
-# LLMs
-llm = ChatGroq(groq_api_key=api_key, model_name=model_name, temperature=temperature)
-
-
-# Handle Submission
 if user_input:
     session_history = st.session_state.store.get(session_id, ChatMessageHistory())
-    conversational_rag_chain = None
     context_string = "No PDF uploaded. Use chat history only."
 
+    # Load and split PDF
     if uploaded_files:
         documents = []
         for uploaded_file in uploaded_files:
@@ -163,65 +158,59 @@ if user_input:
                 temp_pdf = tmp.name
             loader = PyPDFLoader(temp_pdf)
             documents.extend(loader.load())
-
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=5000, chunk_overlap=500)
         splits = text_splitter.split_documents(documents)
-        vectorstore = Chroma.from_documents(documents=splits, embedding=embeddings, persist_directory=None, collection_name=f"temp_{session_id}")
+        vectorstore = Chroma.from_documents(splits, embedding=embeddings, persist_directory=None, collection_name=f"temp_{session_id}")
         retriever = vectorstore.as_retriever()
+        context_string = "\n\n".join(doc.page_content for doc in splits[:3])
 
-        history_aware_retriever = create_history_aware_retriever(llm, retriever, contextualize_q_prompt)
-        question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
-        rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
+    col1, col2 = st.columns(2) if len(selected_models) == 2 else (st.container(), None)
 
-        def get_session_history(session: str) -> BaseChatMessageHistory:
-            if session not in st.session_state.store:
-                st.session_state.store[session] = ChatMessageHistory()
-            return st.session_state.store[session]
+    for i, model_name in enumerate(selected_models):
+        model = llms[model_name]
+        with (col1 if i == 0 else col2):
+            st.markdown(f"### 🤖 Response from {model_name}")
+            with st.spinner(f"Thinking with {model_name}..."):
+                if uploaded_files:
+                    history_aware_retriever = create_history_aware_retriever(model, retriever, contextualize_q_prompt)
+                    question_answer_chain = create_stuff_documents_chain(model, qa_prompt)
+                    rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
 
-        conversational_rag_chain = RunnableWithMessageHistory(
-            rag_chain,
-            get_session_history,
-            input_messages_key="input",
-            history_messages_key="chat_history",
-            output_messages_key="answer",
-        )
+                    def get_session_history(session: str) -> BaseChatMessageHistory:
+                        if session not in st.session_state.store:
+                            st.session_state.store[session] = ChatMessageHistory()
+                        return st.session_state.store[session]
 
-    with st.spinner("Thinking..."):
-        if conversational_rag_chain:
-            response = conversational_rag_chain.invoke(
-                {"input": user_input, "language": st.session_state.language},
-                config={"configurable": {"session_id": session_id}},
-            )
-            assistant_reply = response['answer']
-            context_string = "\n\n".join(doc.page_content for doc in splits[:3])
-        else:
-            messages = qa_prompt.format_messages(
-                input=user_input,
-                chat_history=session_history.messages,
-                context=context_string,
-                language=st.session_state.language,
-            )
-            response = llm.invoke(messages)
-            assistant_reply = response.content
+                    conversational_rag_chain = RunnableWithMessageHistory(
+                        rag_chain,
+                        get_session_history,
+                        input_messages_key="input",
+                        history_messages_key="chat_history",
+                        output_messages_key="answer",
+                    )
 
-        # Display response
-        with st.chat_message("assistant"):
-            st.markdown(assistant_reply)
+                    response = conversational_rag_chain.invoke(
+                        {"input": user_input, "language": st.session_state.language},
+                        config={"configurable": {"session_id": session_id}},
+                    )
+                    assistant_reply = response['answer']
+                else:
+                    messages = qa_prompt.format_messages(
+                        input=user_input,
+                        chat_history=session_history.messages,
+                        context=context_string,
+                        language=st.session_state.language,
+                    )
+                    response = model.invoke(messages)
+                    assistant_reply = response.content
+                    session_history.add_user_message(user_input)
+                    session_history.add_ai_message(assistant_reply)
 
-        # Optional automatic evaluation (can be removed if only manual eval needed)
-        eval_messages = evaluation_prompt.format_messages(
-            question=user_input,
-            answer=assistant_reply,
-            context=context_string
-        )
-        eval_result = evaluator.invoke(eval_messages)
-        st.session_state.last_eval = eval_result.content
-        st.session_state.last_question = user_input
-        st.session_state.last_answer = assistant_reply
+                st.markdown(assistant_reply)
 
-        # Avoid double saving messages when using RAG
-        if not conversational_rag_chain:
-            session_history.add_user_message(user_input)
-            session_history.add_ai_message(assistant_reply)
-
-        st.rerun()
+                eval_messages = evaluation_prompt.format_messages(
+                    question=user_input,
+                    answer=assistant_reply,
+                    context=context_string
+                )
+               

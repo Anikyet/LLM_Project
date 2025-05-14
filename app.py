@@ -169,7 +169,7 @@ if user_input:
     for i, model_name in enumerate(selected_models):
         model = llms[model_name]
         with (col1 if i == 0 else col2):
-            st.markdown(f"""### 🤖 Response from <span style='color:#1f77b4'>{model_name}</span>""", unsafe_allow_html=True)
+            st.markdown(f"""### 🤖 Response from <span style='color:#28a745'>{model_name}</span>""", unsafe_allow_html=True)
             with st.spinner(f"Thinking with {model_name}..."):
                 if uploaded_files:
                     history_aware_retriever = create_history_aware_retriever(model, retriever, contextualize_q_prompt)

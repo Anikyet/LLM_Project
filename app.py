@@ -59,7 +59,7 @@ if not selected_models:
     st.stop()
 
 temperature = st.sidebar.slider("Creativity Level", 0.0, 1.0, 0.7)
-language = st.sidebar.selectbox("Select Language", ["English", "Hindi", "Hinglish", "French", "Spanish"], index=0)
+language = st.sidebar.selectbox("Select Language", ["English", "Hindi", "Hinglish"], index=0)
 st.session_state.language = language
 
 if not api_key:

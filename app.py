@@ -278,6 +278,7 @@ if user_input:
     #     st.divider()
     #     st.markdown("<div style='margin-top: 50px;'></div>", unsafe_allow_html=True)
 # for single output in single row
+    Selected_model=""
     for model_name in selected_models:
         model = llms[model_name]
     
@@ -321,7 +322,7 @@ if user_input:
                 assistant_reply = re.sub(r"<think>.*?</think>", "", response.content, flags=re.DOTALL).strip()
                 # session_history.add_user_message(user_input)
                 # session_history.add_ai_message(assistant_reply)
-    
+            Selected_model= model_name
             st.markdown(
                 f"""
                 <div style="
@@ -337,7 +338,7 @@ if user_input:
                 """,
                 unsafe_allow_html=True
             )
-    
+            
             st.markdown(f"""Word Cloud of Response of <span style='color:#28a745'>{model_name}</span>""", unsafe_allow_html=True)
             wordcloud_img = generate_wordcloud(assistant_reply)
             st.image(wordcloud_img, width=350)
@@ -352,5 +353,5 @@ if user_input:
         st.markdown("<div style='margin-top: 50px;'></div>", unsafe_allow_html=True)
         # Add user and assistant messages only once per user turn (optionally, only first model's reply)
         session_history.add_user_message(user_input)
-        session_history.add_ai_message(f"{selected_models[0]}: {assistant_reply}")
+        session_history.add_ai_message(f"{Selected_model}: {assistant_reply}")
 

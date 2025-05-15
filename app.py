@@ -148,6 +148,7 @@ with st.container():
 if user_input:
     session_history = st.session_state.store.get(session_id, ChatMessageHistory())
     context_string = "No PDF uploaded. Use chat history only."
+    retriever = None
 
     # Load and split PDF
     if uploaded_files:
@@ -158,65 +159,71 @@ if user_input:
                 temp_pdf = tmp.name
             loader = PyPDFLoader(temp_pdf)
             documents.extend(loader.load())
+
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=5000, chunk_overlap=500)
         splits = text_splitter.split_documents(documents)
-        vectorstore = Chroma.from_documents(splits, embedding=embeddings, persist_directory=None, collection_name=f"temp_{session_id}")
+        vectorstore = Chroma.from_documents(
+            splits,
+            embedding=embeddings,
+            persist_directory=None,
+            collection_name=f"temp_{session_id}"
+        )
         retriever = vectorstore.as_retriever()
         context_string = "\n\n".join(doc.page_content for doc in splits[:3])
 
-    # Display responses: two models per row
-for row_start in range(0, len(selected_models), 2):
-    cols = st.columns(2)
-    for col_index, model_index in enumerate(range(row_start, min(row_start + 2, len(selected_models)))):
-        model_name = selected_models[model_index]
-        model = llms[model_name]
+    # Display responses: 2 columns per row
+    for row_start in range(0, len(selected_models), 2):
+        cols = st.columns(2)
+        for col_index, model_index in enumerate(range(row_start, min(row_start + 2, len(selected_models)))):
+            model_name = selected_models[model_index]
+            model = llms[model_name]
 
-        with cols[col_index]:
-            st.markdown(f"""### 🤖 Response from <span style='color:#28a745'>{model_name}</span>""", unsafe_allow_html=True)
-            with st.spinner(f"Thinking with {model_name}..."):
+            with cols[col_index]:
+                st.markdown(f"""### 🤖 Response from <span style='color:#28a745'>{model_name}</span>""", unsafe_allow_html=True)
+                with st.spinner(f"Thinking with {model_name}..."):
 
-                session_history = st.session_state.store.get(session_id, ChatMessageHistory())
+                    session_history = st.session_state.store.get(session_id, ChatMessageHistory())
 
-                if uploaded_files:
-                    history_aware_retriever = create_history_aware_retriever(model, retriever, contextualize_q_prompt)
-                    question_answer_chain = create_stuff_documents_chain(model, qa_prompt)
-                    rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
+                    if uploaded_files and retriever is not None:
+                        history_aware_retriever = create_history_aware_retriever(model, retriever, contextualize_q_prompt)
+                        question_answer_chain = create_stuff_documents_chain(model, qa_prompt)
+                        rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
 
-                    def get_session_history(session: str) -> BaseChatMessageHistory:
-                        if session not in st.session_state.store:
-                            st.session_state.store[session] = ChatMessageHistory()
-                        return st.session_state.store[session]
+                        def get_session_history(session: str) -> BaseChatMessageHistory:
+                            if session not in st.session_state.store:
+                                st.session_state.store[session] = ChatMessageHistory()
+                            return st.session_state.store[session]
 
-                    conversational_rag_chain = RunnableWithMessageHistory(
-                        rag_chain,
-                        get_session_history,
-                        input_messages_key="input",
-                        history_messages_key="chat_history",
-                        output_messages_key="answer",
+                        conversational_rag_chain = RunnableWithMessageHistory(
+                            rag_chain,
+                            get_session_history,
+                            input_messages_key="input",
+                            history_messages_key="chat_history",
+                            output_messages_key="answer",
+                        )
+
+                        response = conversational_rag_chain.invoke(
+                            {"input": user_input, "language": st.session_state.language},
+                            config={"configurable": {"session_id": session_id}},
+                        )
+                        assistant_reply = response['answer']
+
+                    else:
+                        messages = qa_prompt.format_messages(
+                            input=user_input,
+                            chat_history=session_history.messages,
+                            context=context_string,
+                            language=st.session_state.language,
+                        )
+                        response = model.invoke(messages)
+                        assistant_reply = response.content
+                        session_history.add_user_message(user_input)
+                        session_history.add_ai_message(assistant_reply)
+
+                    st.markdown(assistant_reply)
+
+                    eval_messages = evaluation_prompt.format_messages(
+                        question=user_input,
+                        answer=assistant_reply,
+                        context=context_string
                     )
-
-                    response = conversational_rag_chain.invoke(
-                        {"input": user_input, "language": st.session_state.language},
-                        config={"configurable": {"session_id": session_id}},
-                    )
-                    assistant_reply = response['answer']
-                else:
-                    messages = qa_prompt.format_messages(
-                        input=user_input,
-                        chat_history=session_history.messages,
-                        context=context_string,
-                        language=st.session_state.language,
-                    )
-                    response = model.invoke(messages)
-                    assistant_reply = response.content
-                    session_history.add_user_message(user_input)
-                    session_history.add_ai_message(assistant_reply)
-
-                st.markdown(assistant_reply)
-
-                eval_messages = evaluation_prompt.format_messages(
-                    question=user_input,
-                    answer=assistant_reply,
-                    context=context_string
-                )
-

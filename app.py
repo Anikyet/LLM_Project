@@ -221,7 +221,24 @@ if user_input:
                         session_history.add_user_message(user_input)
                         session_history.add_ai_message(assistant_reply)
 
-                    st.markdown(assistant_reply)
+                    st.markdown(
+                            f"""
+                            <div style="
+                                background-color: #f0f0f0;
+                                border-radius: 10px;
+                                padding: 1rem;
+                                margin-top: 0.5rem;
+                                margin-bottom: 1rem;
+                                border: 1px solid #ddd;
+                                font-size: 16px;
+                                line-height: 1.6;
+                            ">
+                                {assistant_reply}
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+
 
                     eval_messages = evaluation_prompt.format_messages(
                         question=user_input,

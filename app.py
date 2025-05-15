@@ -18,9 +18,22 @@ import sys
 import pysqlite3
 from PIL import Image
 import re
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
+import io
+
 
 sys.modules["sqlite3"] = pysqlite3
-
+# function to generate a word cloud image
+def generate_wordcloud(text):
+    wordcloud = WordCloud(width=800, height=400, background_color='white').generate(text)
+    fig, ax = plt.subplots(figsize=(6, 3))
+    ax.imshow(wordcloud, interpolation='bilinear')
+    ax.axis("off")
+    buf = io.BytesIO()
+    plt.savefig(buf, format="png")
+    buf.seek(0)
+    return buf
 
 # Load env variables
 load_dotenv()
@@ -240,6 +253,10 @@ if user_input:
                             """,
                             unsafe_allow_html=True
                         )
+                    st.markdown("**🔤 Word Cloud of Response**")
+                    wordcloud_img = generate_wordcloud(assistant_reply)
+                    st.image(wordcloud_img)
+
 
 
                     eval_messages = evaluation_prompt.format_messages(

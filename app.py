@@ -224,7 +224,7 @@ if user_input:
                     st.markdown(
                             f"""
                             <div style="
-                                background-color: #f0f0f0;
+                                background-color: rgba(240, 240, 240, 0.4);
                                 border-radius: 10px;
                                 padding: 1rem;
                                 margin-top: 0.5rem;

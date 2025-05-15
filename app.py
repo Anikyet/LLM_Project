@@ -270,10 +270,10 @@ if user_input:
                     wordcloud_img = generate_wordcloud(assistant_reply)
                     st.image(wordcloud_img)
 
-
-
                     eval_messages = evaluation_prompt.format_messages(
                         question=user_input,
                         answer=assistant_reply,
                         context=context_string
-                    )
+                    )   
+        st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
+                    

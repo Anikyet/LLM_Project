@@ -246,6 +246,24 @@ if user_input:
                         session_history.add_user_message(user_input)
                         session_history.add_ai_message(assistant_reply)
 
+                    # st.markdown(
+                    #             f"""
+                    #             <div style="
+                    #                 background-color: rgba(240, 240, 240, 0.15);
+                    #                 border-radius: 10px;
+                    #                 padding: 1rem;
+                    #                 margin-top: 0.5rem;
+                    #                 margin-bottom: 0.5rem;
+                    #                 font-size: 16px;
+                    #                 line-height: 1.6;
+                    #                 color: white;
+                    #                 font-weight: 600;
+                    #             ">
+                    #                 {assistant_reply}
+                    #             </div>
+                    #             """,
+                    #             unsafe_allow_html=True
+                    #         )
                     st.markdown(
                                 f"""
                                 <div style="
@@ -261,15 +279,16 @@ if user_input:
                                 ">
                                     {assistant_reply}
                                 </div>
+                            
+                                <div style="width: 100%; height: 100%; border-left: 2px solid rgba(255, 255, 255, 0.3); margin: 1rem 0;"></div>
                                 """,
                                 unsafe_allow_html=True
                             )
+
                     # Word Cloud
                     st.markdown(f"""Word Cloud of Response of <span style='color:#28a745'>{model_name}</span>""", unsafe_allow_html=True)
                     wordcloud_img = generate_wordcloud(assistant_reply)
                     st.image(wordcloud_img, width=350)
-                    st.markdown("<hr style='border: 1px solid #888; margin-top: 1rem; margin-bottom: 1rem;'>", unsafe_allow_html=True)
-
                     
                     eval_messages = evaluation_prompt.format_messages(
                         question=user_input,

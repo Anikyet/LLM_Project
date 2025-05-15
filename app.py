@@ -319,8 +319,8 @@ if user_input:
                 )
                 response = model.invoke(messages)
                 assistant_reply = re.sub(r"<think>.*?</think>", "", response.content, flags=re.DOTALL).strip()
-                session_history.add_user_message(user_input)
-                session_history.add_ai_message(assistant_reply)
+                # session_history.add_user_message(user_input)
+                # session_history.add_ai_message(assistant_reply)
     
             st.markdown(
                 f"""
@@ -350,4 +350,7 @@ if user_input:
     
         st.divider()
         st.markdown("<div style='margin-top: 50px;'></div>", unsafe_allow_html=True)
+        # Add user and assistant messages only once per user turn (optionally, only first model's reply)
+        session_history.add_user_message(user_input)
+        session_history.add_ai_message(f"{selected_models[0]}: {assistant_reply}")
 

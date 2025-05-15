@@ -220,7 +220,8 @@ if user_input:
                         assistant_reply = re.sub(r"<think>.*?</think>", "", response.content, flags=re.DOTALL).strip()
                         session_history.add_user_message(user_input)
                         session_history.add_ai_message(assistant_reply)
-
+                    if len(selected_models) == 1:
+                        st.rerun()
                     st.markdown(
                             f"""
                             <div style="

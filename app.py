@@ -274,7 +274,8 @@ if user_input:
                         question=user_input,
                         answer=assistant_reply,
                         context=context_string
-                    )    
+                    ) 
+        st.divider()
         st.markdown("<div style='margin-top: 50px;'></div>", unsafe_allow_html=True)
 
                     

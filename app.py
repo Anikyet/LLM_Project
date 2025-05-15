@@ -164,7 +164,8 @@ if user_input:
         retriever = vectorstore.as_retriever()
         context_string = "\n\n".join(doc.page_content for doc in splits[:3])
 
-    for row_start in range(0, len(selected_models), 2):
+    # Display responses: two models per row
+for row_start in range(0, len(selected_models), 2):
     cols = st.columns(2)
     for col_index, model_index in enumerate(range(row_start, min(row_start + 2, len(selected_models)))):
         model_name = selected_models[model_index]
@@ -218,3 +219,4 @@ if user_input:
                     answer=assistant_reply,
                     context=context_string
                 )
+

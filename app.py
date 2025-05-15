@@ -21,12 +21,24 @@ import re
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 import io
+from wordcloud import WordCloud, STOPWORDS
 
 
 sys.modules["sqlite3"] = pysqlite3
 # function to generate a word cloud image
+
 def generate_wordcloud(text):
-    wordcloud = WordCloud(width=800, height=400, background_color='white').generate(text)
+    stopwords = set(STOPWORDS)
+    # Optionally add your own stopwords
+    # stopwords.update(["please", "thank", "thanks", "assistant", "user"])
+
+    wordcloud = WordCloud(
+        width=800,
+        height=400,
+        background_color='white',
+        stopwords=stopwords
+    ).generate(text)
+
     fig, ax = plt.subplots(figsize=(6, 3))
     ax.imshow(wordcloud, interpolation='bilinear')
     ax.axis("off")
@@ -34,6 +46,7 @@ def generate_wordcloud(text):
     plt.savefig(buf, format="png")
     buf.seek(0)
     return buf
+
 
 # Load env variables
 load_dotenv()

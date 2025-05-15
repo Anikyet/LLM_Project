@@ -253,7 +253,7 @@ if user_input:
                             """,
                             unsafe_allow_html=True
                         )
-                    st.markdown("**🔤 Word Cloud of Response**")
+                    st.markdown(f""" Word Cloud of Response of {model_name}""")
                     wordcloud_img = generate_wordcloud(assistant_reply)
                     st.image(wordcloud_img)
 

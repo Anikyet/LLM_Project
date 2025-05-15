@@ -88,7 +88,6 @@ contextualize_q_prompt = ChatPromptTemplate.from_messages([
 qa_prompt = ChatPromptTemplate.from_messages([
     ("system", "You are a helpful assistant. Use the provided context to answer the question. "
      "Always respond to the user **in {language}**, regardless of the input language. "
-     "Do not add the <think> </think> part in the answer"
      "If the language is 'Hinglish', respond in Hindi written using English (Roman) script. "
      "Be concise, clear, and informative.\n\nContext:\n{context}"),
     MessagesPlaceholder("chat_history"),

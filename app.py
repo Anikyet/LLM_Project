@@ -9,32 +9,26 @@ from langchain_groq import ChatGroq
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
+from langchain_huggingface import HuggingFaceEmbeddings
+
 from dotenv import load_dotenv
 import os
 import tempfile
-from langchain_huggingface import HuggingFaceEmbeddings
 import uuid
 import sys
 import pysqlite3
 from PIL import Image
 import re
-from wordcloud import WordCloud
-import matplotlib.pyplot as plt
 import io
-from wordcloud import STOPWORDS
+import matplotlib.pyplot as plt
+from wordcloud import WordCloud, STOPWORDS
 
 sys.modules["sqlite3"] = pysqlite3
 
-# Word cloud generation
+# --- Utility: Word Cloud ---
 def generate_wordcloud(text):
     stopwords = set(STOPWORDS)
-    wordcloud = WordCloud(
-        width=400,
-        height=200,
-        background_color='white',
-        stopwords=stopwords
-    ).generate(text)
-
+    wordcloud = WordCloud(width=400, height=200, background_color='white', stopwords=stopwords).generate(text)
     fig, ax = plt.subplots(figsize=(4, 2))
     ax.imshow(wordcloud, interpolation='bilinear')
     ax.axis("off")
@@ -43,7 +37,7 @@ def generate_wordcloud(text):
     buf.seek(0)
     return buf
 
-# Load environment variables
+# --- Load environment variables ---
 load_dotenv()
 os.environ['HF_TOKEN'] = st.secrets["HF_TOKEN"]
 os.environ["LANGCHAIN_API_KEY"] = st.secrets["LANGCHAIN_API_KEY"]
@@ -51,32 +45,27 @@ os.environ["LANGCHAIN_TRACING_V2"] = st.secrets["LANGCHAIN_TRACING_V2"]
 os.environ["LANGCHAIN_PROJECT"] = st.secrets["LANGCHAIN_PROJECT"]
 api_key = st.secrets["GROQ_API_KEY"]
 
-# Embeddings
+# --- Embeddings ---
 embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2", model_kwargs={"device": "cpu"})
 
-# UI Setup
-image = Image.open('image.png')
+# --- UI Setup ---
 st.set_page_config(page_title="Intelleq", layout="wide")
-
+image = Image.open('image.png')
 col1, col2 = st.columns([1, 7])
 with col1:
     st.image(image, width=120)
 with col2:
-    st.markdown("""<h1 >Intelleq
-    <span style='color: #1f77b4; font-size: .7em;  margin-left: 10px;'>- Your AI Assistant</span>
-    </h1>""", unsafe_allow_html=True)
-
+    st.markdown("""<h1>Intelleq <span style='color: #1f77b4; font-size: .7em;'>- Your AI Assistant</span></h1>""", unsafe_allow_html=True)
 st.header(" _Hey, Good to see you here...._")
 st.subheader("How can I help you..?")
 
-# Sidebar
+# --- Sidebar ---
 st.sidebar.header("🔐 Configuration")
 selected_models = st.sidebar.multiselect(
     "Select one or more Open Source models",
     ["Gemma2-9b-It", "Deepseek-R1-Distill-Llama-70b", "Qwen-Qwq-32b", "Compound-Beta", "Llama3-70b-8192"],
     default=["Gemma2-9b-It"]
 )
-
 if not selected_models:
     st.warning("Please select at least one model.")
     st.stop()
@@ -89,7 +78,7 @@ if not api_key:
     st.warning("Please enter the Groq API Key to continue.")
     st.stop()
 
-# Session and chat store
+# --- Session ---
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
 session_id = st.session_state.session_id
@@ -103,7 +92,7 @@ if 'store' not in st.session_state:
 if session_id not in st.session_state.store:
     st.session_state.store[session_id] = ChatMessageHistory()
 
-# Prompts
+# --- Prompts ---
 contextualize_q_prompt = ChatPromptTemplate.from_messages([
     ("system", "Given a chat history and the latest user question, formulate a standalone question. Do NOT answer it."),
     MessagesPlaceholder("chat_history"),
@@ -111,9 +100,9 @@ contextualize_q_prompt = ChatPromptTemplate.from_messages([
 ])
 qa_prompt = ChatPromptTemplate.from_messages([
     ("system", "You are a helpful assistant. Use the provided context to answer the question. "
-     "Always respond to the user **in {language}**, regardless of the input language. "
-     "If the language is 'Hinglish', respond in Hindi written using English (Roman) script. "
-     "Be concise, clear, and informative.\n\nContext:\n{context}"),
+               "Always respond to the user **in {language}**, regardless of the input language. "
+               "If the language is 'Hinglish', respond in Hindi written using English (Roman) script. "
+               "Be concise, clear, and informative.\n\nContext:\n{context}"),
     MessagesPlaceholder("chat_history"),
     ("human", "{input}"),
 ])
@@ -123,19 +112,18 @@ evaluation_prompt = ChatPromptTemplate.from_messages([
     ("human", "Question: {question}\n\nAnswer: {answer}\n\nContext: {context}")
 ])
 
-# Show Chat History
+# --- Display Chat History ---
 st.subheader("💬")
-chat_messages = st.session_state.store.get(session_id, ChatMessageHistory()).messages[-20:]
+chat_messages = st.session_state.store[session_id].messages[-20:]
 for msg in chat_messages:
     role = "user" if type(msg).__name__ == "HumanMessage" else "assistant"
     with st.chat_message(role):
         st.markdown(msg.content)
 
-# Evaluator
+# --- Evaluator ---
 evaluator = ChatGroq(groq_api_key=api_key, model_name=selected_models[0], temperature=0)
-
 if st.sidebar.button("🔍 Evaluate Entire Conversation"):
-    session_history = st.session_state.store.get(session_id, ChatMessageHistory()).messages
+    session_history = st.session_state.store[session_id].messages
     full_conversation = ""
     for msg in session_history:
         role = "User" if type(msg).__name__ == "HumanMessage" else "Assistant"
@@ -148,49 +136,46 @@ if st.sidebar.button("🔍 Evaluate Entire Conversation"):
     )
     try:
         eval_result = evaluator.invoke(eval_messages)
+        if st.toggle("🔍 Show Evaluation Result", value=True):
+            st.subheader("🧪 Full Conversation Evaluation")
+            with st.expander("📜 Full conversation context", expanded=False):
+                st.text(full_conversation)
+            st.info(eval_result.content)
     except Exception as e:
         st.error(f"Error occurred during evaluation: {e}")
         st.stop()
 
-    if st.toggle("🔍 Show Evaluation Result", value=True):
-        st.subheader("🧪 Full Conversation Evaluation")
-        with st.expander("📜 Full conversation context", expanded=False):
-            st.text(full_conversation)
-        st.info(eval_result.content)
-
-# Init LLMs
+# --- LLM Initialization ---
 llms = {model: ChatGroq(groq_api_key=api_key, model_name=model, temperature=temperature) for model in selected_models}
 
-# Chat + File Upload
-with st.container():
-    user_input = st.chat_input("Ask a question or upload PDF")
-with st.container():
-    uploaded_files = st.file_uploader("📄", type="pdf", accept_multiple_files=True, label_visibility="collapsed")
+# --- Chat + PDF Upload ---
+user_input = st.chat_input("Ask a question or upload PDF")
+uploaded_files = st.file_uploader("📄", type="pdf", accept_multiple_files=True, label_visibility="collapsed")
 
-# Processing input
 if user_input:
-    session_history = st.session_state.store.get(session_id, ChatMessageHistory())
+    session_history = st.session_state.store[session_id]
     context_string = "No PDF uploaded. Use chat history only."
     retriever = None
 
-    # Load PDF content
-    documents = []
     if uploaded_files:
+        documents = []
         for uploaded_file in uploaded_files:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
-                tmp_file.write(uploaded_file.read())
-                tmp_path = tmp_file.name
-            loader = PyPDFLoader(tmp_path)
-            documents.extend(loader.load())
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmpfile:
+                tmpfile.write(uploaded_file.read())
+                tmpfile.flush()
+                loader = PyPDFLoader(tmpfile.name)
+                documents.extend(loader.load())
 
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=200)
-        docs = text_splitter.split_documents(documents)
-        vectorstore = Chroma.from_documents(docs, embeddings, collection_name=session_id)
-        retriever = vectorstore.as_retriever()
+        documents = text_splitter.split_documents(documents)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vectordb = Chroma.from_documents(documents, embedding=embeddings, persist_directory=tmpdir)
+            retriever = vectordb.as_retriever()
+            context_string = "\n\n".join([doc.page_content for doc in documents[:10]])
 
-    # Loop through selected models
-    for model_name, model in llms.items():
-        with st.container():
+    cols = st.columns(len(selected_models))
+    for col_index, (model_name, model) in enumerate(llms.items()):
+        with cols[col_index]:
             st.markdown(f"""###  Generated by : <span style='color:#28a745'>{model_name}</span>""", unsafe_allow_html=True)
 
             with st.spinner(f"Thinking with {model_name}..."):
@@ -217,6 +202,7 @@ if user_input:
                         config={"configurable": {"session_id": session_id}},
                     )
                     assistant_reply = re.sub(r"<think>.*?</think>", "", response['answer'], flags=re.DOTALL).strip()
+
                 else:
                     messages = qa_prompt.format_messages(
                         input=user_input,
@@ -226,9 +212,8 @@ if user_input:
                     )
                     response = model.invoke(messages)
                     assistant_reply = re.sub(r"<think>.*?</think>", "", response.content, flags=re.DOTALL).strip()
-
-                session_history.add_user_message(user_input)
-                session_history.add_ai_message(assistant_reply)
+                    session_history.add_user_message(user_input)
+                    session_history.add_ai_message(assistant_reply)
 
                 st.markdown(
                     f"""
@@ -249,7 +234,7 @@ if user_input:
                     unsafe_allow_html=True
                 )
 
-                st.markdown(f"""Word Cloud of Response of {model_name}""")
+                st.markdown(f"Word Cloud of Response from **{model_name}**")
                 wordcloud_img = generate_wordcloud(assistant_reply)
                 st.image(wordcloud_img)
 
@@ -259,4 +244,5 @@ if user_input:
                     context=context_string
                 )
 
+    # Add spacing between rows of model responses
     st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)

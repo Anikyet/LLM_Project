@@ -247,39 +247,39 @@ if user_input:
                         # session_history.add_user_message(user_input)
                         # session_history.add_ai_message(assistant_reply)
                     Selected_model= model_name
-                    st.markdown(
-                        f"""
-                        <div style="
-                            border-radius: 10px;
-                            padding: 1rem;
-                            font-size: 16px;
-                            line-height: 1.6;
-                            color: white;
-                            font-weight: 600;
-                        ">
-                            {assistant_reply}
-                        </div>
-                        """,
-                        unsafe_allow_html=True
-                    )
                     # st.markdown(
-                    #             f"""
-                    #             <div style="
-                    #                 background-color: rgba(240, 240, 240, 0.15);
-                    #                 border-radius: 10px;
-                    #                 padding: 1rem;
-                    #                 margin-top: 0.5rem;
-                    #                 margin-bottom: 0.5rem;
-                    #                 font-size: 16px;
-                    #                 line-height: 1.6;
-                    #                 color: white;
-                    #                 font-weight: 600;
-                    #             ">
-                    #                 {assistant_reply}
-                    #             </div>
-                    #             """,
-                    #             unsafe_allow_html=True
-                    #         )
+                    #     f"""
+                    #     <div style="
+                    #         border-radius: 10px;
+                    #         padding: 1rem;
+                    #         font-size: 16px;
+                    #         line-height: 1.6;
+                    #         color: white;
+                    #         font-weight: 600;
+                    #     ">
+                    #         {assistant_reply}
+                    #     </div>
+                    #     """,
+                    #     unsafe_allow_html=True
+                    )
+                    st.markdown(
+                                f"""
+                                <div style="
+                                    background-color: rgba(240, 240, 240, 0.15);
+                                    border-radius: 10px;
+                                    padding: 1rem;
+                                    margin-top: 0.5rem;
+                                    margin-bottom: 0.5rem;
+                                    font-size: 16px;
+                                    line-height: 1.6;
+                                    color: white;
+                                    font-weight: 600;
+                                ">
+                                    {assistant_reply}
+                                </div>
+                                """,
+                                unsafe_allow_html=True
+                            )
                     
                     # Word Cloud
                     st.markdown(f"""Word Cloud of Response of <span style='color:#28a745'>{model_name}</span>""", unsafe_allow_html=True)

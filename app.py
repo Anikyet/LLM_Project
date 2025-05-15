@@ -29,23 +29,23 @@ sys.modules["sqlite3"] = pysqlite3
 
 def generate_wordcloud(text):
     stopwords = set(STOPWORDS)
-    # Optionally add your own stopwords
     # stopwords.update(["please", "thank", "thanks", "assistant", "user"])
 
     wordcloud = WordCloud(
-        width=800,
-        height=400,
+        width=400,  # Reduced width
+        height=200,  # Reduced height
         background_color='white',
         stopwords=stopwords
     ).generate(text)
 
-    fig, ax = plt.subplots(figsize=(6, 3))
+    fig, ax = plt.subplots(figsize=(4, 2))  # Smaller figure
     ax.imshow(wordcloud, interpolation='bilinear')
     ax.axis("off")
     buf = io.BytesIO()
-    plt.savefig(buf, format="png")
+    plt.savefig(buf, format="png", bbox_inches='tight')
     buf.seek(0)
     return buf
+
 
 
 # Load env variables

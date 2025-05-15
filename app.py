@@ -49,11 +49,11 @@ st.subheader("How can I help you..?")
 # Sidebar
 st.sidebar.header("🔐 Configuration")
 selected_models = st.sidebar.multiselect(
-    "Select one or two Open Source models",
+    "Select one or more Open Source models",
     ["Gemma2-9b-It", "Deepseek-R1-Distill-Llama-70b", "Qwen-Qwq-32b", "Compound-Beta", "Llama3-70b-8192"],
-    default=["Gemma2-9b-It"],
-    max_selections=2
+    default=["Gemma2-9b-It"]
 )
+
 if not selected_models:
     st.warning("Please select at least one model.")
     st.stop()
@@ -164,13 +164,18 @@ if user_input:
         retriever = vectorstore.as_retriever()
         context_string = "\n\n".join(doc.page_content for doc in splits[:3])
 
-    col1, col2 = st.columns(2) if len(selected_models) == 2 else (st.container(), None)
-
-    for i, model_name in enumerate(selected_models):
+    for row_start in range(0, len(selected_models), 2):
+    cols = st.columns(2)
+    for col_index, model_index in enumerate(range(row_start, min(row_start + 2, len(selected_models)))):
+        model_name = selected_models[model_index]
         model = llms[model_name]
-        with (col1 if i == 0 else col2):
-            st.markdown(f"### 🤖 Response from {model_name}")
+
+        with cols[col_index]:
+            st.markdown(f"""### 🤖 Response from <span style='color:#28a745'>{model_name}</span>""", unsafe_allow_html=True)
             with st.spinner(f"Thinking with {model_name}..."):
+
+                session_history = st.session_state.store.get(session_id, ChatMessageHistory())
+
                 if uploaded_files:
                     history_aware_retriever = create_history_aware_retriever(model, retriever, contextualize_q_prompt)
                     question_answer_chain = create_stuff_documents_chain(model, qa_prompt)
@@ -205,8 +210,6 @@ if user_input:
                     assistant_reply = response.content
                     session_history.add_user_message(user_input)
                     session_history.add_ai_message(assistant_reply)
-                if len(selected_models) == 1:
-                    st.rerun()
 
                 st.markdown(assistant_reply)
 
@@ -215,4 +218,3 @@ if user_input:
                     answer=assistant_reply,
                     context=context_string
                 )
-               

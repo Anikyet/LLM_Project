@@ -21,7 +21,7 @@ import re
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 import io
-
+from wordcloud import WordCloud, STOPWORDS
 
 sys.modules["sqlite3"] = pysqlite3
 

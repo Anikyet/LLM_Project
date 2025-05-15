@@ -17,6 +17,7 @@ import uuid
 import sys
 import pysqlite3
 from PIL import Image
+import re
 
 sys.modules["sqlite3"] = pysqlite3
 
@@ -206,7 +207,7 @@ if user_input:
                             {"input": user_input, "language": st.session_state.language},
                             config={"configurable": {"session_id": session_id}},
                         )
-                        assistant_reply = response['answer']
+                        assistant_reply = re.sub(r"<think>.*?</think>", "", response['answer'], flags=re.DOTALL).strip()
 
                     else:
                         messages = qa_prompt.format_messages(
@@ -216,7 +217,7 @@ if user_input:
                             language=st.session_state.language,
                         )
                         response = model.invoke(messages)
-                        assistant_reply = response.content
+                        assistant_reply = re.sub(r"<think>.*?</think>", "", response.content, flags=re.DOTALL).strip()
                         session_history.add_user_message(user_input)
                         session_history.add_ai_message(assistant_reply)
 

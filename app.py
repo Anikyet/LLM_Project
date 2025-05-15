@@ -253,7 +253,7 @@ if user_input:
                                     border-radius: 10px;
                                     padding: 1rem;
                                     margin-top: 0.5rem;
-                                    margin-bottom: 1rem;
+                                    margin-bottom: 3rem;
                                     font-size: 16px;
                                     line-height: 1.6;
                                     color: white;

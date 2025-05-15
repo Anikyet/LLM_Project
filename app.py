@@ -268,6 +268,7 @@ if user_input:
                     st.markdown(f"""Word Cloud of Response of <span style='color:#28a745'>{model_name}</span>""", unsafe_allow_html=True)
                     wordcloud_img = generate_wordcloud(assistant_reply)
                     st.image(wordcloud_img, width=350)
+                    st.markdown("<hr style='border: 1px solid #888; margin-top: 1rem; margin-bottom: 1rem;'>", unsafe_allow_html=True)
 
                     
                     eval_messages = evaluation_prompt.format_messages(

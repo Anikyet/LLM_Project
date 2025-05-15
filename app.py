@@ -180,7 +180,7 @@ if user_input:
             model = llms[model_name]
 
             with cols[col_index]:
-                st.markdown(f"""### 🤖 Response from <span style='color:#28a745'>{model_name}</span>""", unsafe_allow_html=True)
+                st.markdown(f"""###  Modele : <span style='color:#28a745'>{model_name}</span>""", unsafe_allow_html=True)
                 with st.spinner(f"Thinking with {model_name}..."):
 
                     session_history = st.session_state.store.get(session_id, ChatMessageHistory())
@@ -232,6 +232,7 @@ if user_input:
                                 border: 1px solid #ddd;
                                 font-size: 16px;
                                 line-height: 1.6;
+                                color: black;
                             ">
                                 {assistant_reply}
                             </div>

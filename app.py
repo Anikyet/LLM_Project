@@ -17,6 +17,11 @@ import uuid
 import sys
 import pysqlite3
 from PIL import Image
+import re
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
+import io
+
 
 sys.modules["sqlite3"] = pysqlite3
 
@@ -31,6 +36,27 @@ api_key = st.secrets["GROQ_API_KEY"]
 
 # Embeddings
 embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2", model_kwargs={"device": "cpu"})
+
+# word cloud Generation function
+def generate_wordcloud(text):
+    stopwords = set(STOPWORDS)
+    stopwords.update(["please", "thank", "thanks", "assistant", "user"])
+
+    wordcloud = WordCloud(
+        width=400,  # Reduced width
+        height=200,  # Reduced height
+        background_color='white',
+        stopwords=stopwords
+    ).generate(text)
+
+    fig, ax = plt.subplots(figsize=(4, 2))  # Smaller figure
+    ax.imshow(wordcloud, interpolation='bilinear')
+    ax.axis("off")
+    buf = io.BytesIO()
+    plt.savefig(buf, format="png", bbox_inches='tight')
+    buf.seek(0)
+    return buf
+
 
 # UI Setup
 image = Image.open('image.png')
@@ -206,7 +232,7 @@ if user_input:
                             {"input": user_input, "language": st.session_state.language},
                             config={"configurable": {"session_id": session_id}},
                         )
-                        assistant_reply = response['answer']
+                        assistant_reply = re.sub(r"<think>.*?</think>", "", response['answer'], flags=re.DOTALL).strip()
 
                     else:
                         messages = qa_prompt.format_messages(
@@ -216,12 +242,34 @@ if user_input:
                             language=st.session_state.language,
                         )
                         response = model.invoke(messages)
-                        assistant_reply = response.content
+                        assistant_reply = re.sub(r"<think>.*?</think>", "", response.content, flags=re.DOTALL).strip()
                         session_history.add_user_message(user_input)
                         session_history.add_ai_message(assistant_reply)
 
-                    st.markdown(assistant_reply)
+                    st.markdown(
+                                f"""
+                                <div style="
+                                    background-color: rgba(240, 240, 240, 0.15);
+                                    border-radius: 10px;
+                                    padding: 1rem;
+                                    margin-top: 0.5rem;
+                                    margin-bottom: 1rem;
+                                    font-size: 16px;
+                                    line-height: 1.6;
+                                    color: white;
+                                    font-weight: 600;
+                                ">
+                                    {assistant_reply}
+                                </div>
+                                """,
+                                unsafe_allow_html=True
+                            )
+                    # Word Cloud
+                    st.markdown("**🔤 Word Cloud of Response**")
+                    wordcloud_img = generate_wordcloud(assistant_reply)
+                    st.image(wordcloud_img, width=350)
 
+                    
                     eval_messages = evaluation_prompt.format_messages(
                         question=user_input,
                         answer=assistant_reply,

@@ -275,6 +275,6 @@ if user_input:
                         answer=assistant_reply,
                         context=context_string
                     )    
-        st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='margin-top: 50px;'></div>", unsafe_allow_html=True)
 
                     

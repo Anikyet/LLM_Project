@@ -33,3 +33,5 @@ evaluate
 nltk
 rouge-score
 bert-score
+wordcloud
+matplotlib

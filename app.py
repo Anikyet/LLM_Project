@@ -265,7 +265,7 @@ if user_input:
                                 unsafe_allow_html=True
                             )
                     # Word Cloud
-                    st.markdown(f"""Word Cloud of Response of <span style='color:#28a745'>{model_name}</span>""")
+                    st.markdown(f"""Word Cloud of Response of <span style='color:#28a745'>{model_name}</span>""", unsafe_allow_html=True)
                     wordcloud_img = generate_wordcloud(assistant_reply)
                     st.image(wordcloud_img, width=350)
 

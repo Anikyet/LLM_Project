@@ -224,12 +224,11 @@ if user_input:
                     st.markdown(
                             f"""
                             <div style="
-                                background-color: rgba(240, 240, 240, 0.4);
+                                background-color: rgba(240, 240, 240, 0.15);
                                 border-radius: 10px;
                                 padding: 1rem;
                                 margin-top: 0.5rem;
                                 margin-bottom: 1rem;
-                                border: 1px solid #ddd;
                                 font-size: 16px;
                                 line-height: 1.6;
                                 color: black;

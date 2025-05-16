@@ -343,6 +343,8 @@ if user_input:
                 # session_history.add_ai_message(assistant_reply)
             Selected_model= model_name
             if len(selected_models) == 1:
+                    session_history.add_user_message(user_input)
+                    session_history.add_ai_message(f"{Selected_model}: {assistant_reply}")
                     st.rerun()
             st.markdown(
                 f"""

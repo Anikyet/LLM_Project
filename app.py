@@ -125,9 +125,7 @@ if not api_key:
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
 session_id = st.session_state.session_id
-if st.sidebar.button("🔄 Refresh"):
-    st.session_state.session_id = str(uuid.uuid4())
-    st.rerun()
+
 
 if 'store' not in st.session_state:
     st.session_state.store = {}
@@ -189,7 +187,10 @@ if st.sidebar.button("🔍 Evaluate Entire Conversation"):
         with st.expander("📜 Full conversation context", expanded=False):
             st.text(full_conversation)
         st.info(eval_result.content)
-
+        
+if st.sidebar.button("🔄 Refresh"):
+    st.session_state.session_id = str(uuid.uuid4())
+    st.rerun()
 
 # Init LLMs
 llms = {model: ChatGroq(groq_api_key=api_key, model_name=model, temperature=temperature) for model in selected_models}

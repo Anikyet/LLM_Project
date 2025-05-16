@@ -24,6 +24,9 @@ import io
 from wordcloud import WordCloud, STOPWORDS
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
+import collections
+import string
+
 
 
 sys.modules["sqlite3"] = pysqlite3
@@ -67,6 +70,22 @@ def get_sbert_similarity(text1, text2, embedder):
     # Compute cosine similarity
     sim = cosine_similarity([emb1], [emb2])[0][0]
     return sim
+    
+def get_most_common_words(text, n=10):
+    # Normalize text to lowercase
+    text = text.lower()
+    # Remove punctuation
+    text = text.translate(str.maketrans('', '', string.punctuation))
+    # Tokenize words
+    words = text.split()
+    # Remove stopwords
+    stopwords = set(STOPWORDS)
+    stopwords.update(["please", "thank", "thanks", "assistant", "user"])
+    words = [w for w in words if w not in stopwords]
+    # Count frequency
+    counter = collections.Counter(words)
+    # Return top n words with counts
+    return counter.most_common(n)
 
 
 # UI Setup
@@ -277,7 +296,9 @@ if user_input:
             wordcloud_img = generate_wordcloud(assistant_reply)
             st.image(wordcloud_img, width=350)
             st.markdown(f"<b>SBERT Similarity Score:</b> {similarity_score:.3f}",unsafe_allow_html=True)
-            
+            common_words = get_most_common_words(assistant_reply, n=10)
+            common_words_str = ", ".join([f"{word} ({count})" for word, count in common_words])
+            st.markdown(f"**Top words in {model_name} response:** {common_words_str}")
             eval_messages = evaluation_prompt.format_messages(
                 question=user_input,
                 answer=assistant_reply,
@@ -287,7 +308,7 @@ if user_input:
         st.divider()
         st.markdown("<div style='margin-top: 50px;'></div>", unsafe_allow_html=True)
     
-    # ✅ Now update chat history after all responses are collected
+    # ✅ Now updating chat history after all responses are collected
     session_history = st.session_state.store.get(session_id, ChatMessageHistory())
     session_history.add_user_message(user_input)
     

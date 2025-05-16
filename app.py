@@ -22,6 +22,9 @@ from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 import io
 from wordcloud import WordCloud, STOPWORDS
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
+
 
 sys.modules["sqlite3"] = pysqlite3
 
@@ -56,6 +59,14 @@ def generate_wordcloud(text):
     plt.savefig(buf, format="png", bbox_inches='tight')
     buf.seek(0)
     return buf
+    
+def get_sbert_similarity(text1, text2, embedder):
+    # Embed both texts
+    emb1 = embedder.embed_query(text1)
+    emb2 = embedder.embed_query(text2)
+    # Compute cosine similarity
+    sim = cosine_similarity([emb1], [emb2])[0][0]
+    return sim
 
 
 # UI Setup
@@ -243,7 +254,8 @@ if user_input:
                 assistant_reply = re.sub(r"<think>.*?</think>", "", response.content, flags=re.DOTALL).strip()
     
             responses[model_name] = assistant_reply
-    
+            similarity_score = get_sbert_similarity(user_input, assistant_reply, embeddings)
+
             # Display reply
             st.markdown(
                 f"""
@@ -264,7 +276,8 @@ if user_input:
             st.markdown(f"""Word Cloud of Response of <span style='color:#28a745'>{model_name}</span>""", unsafe_allow_html=True)
             wordcloud_img = generate_wordcloud(assistant_reply)
             st.image(wordcloud_img, width=350)
-    
+            st.markdown(f"<b>SBERT Similarity Score:</b> {similarity_score:.3f}",unsafe_allow_html=True)
+            
             eval_messages = evaluation_prompt.format_messages(
                 question=user_input,
                 answer=assistant_reply,

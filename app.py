@@ -35,7 +35,7 @@ os.environ["LANGCHAIN_PROJECT"] = st.secrets["LANGCHAIN_PROJECT"]
 api_key = st.secrets["GROQ_API_KEY"]
 
 # Embeddings
-embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2", model_kwargs={"device": "cpu"})
+embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
 # word cloud Generation function
 def generate_wordcloud(text):

@@ -17,6 +17,17 @@ import uuid
 import sys
 import pysqlite3
 from PIL import Image
+import re
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
+import io
+from wordcloud import WordCloud, STOPWORDS
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
+import collections
+import string
+
+
 
 sys.modules["sqlite3"] = pysqlite3
 
@@ -31,6 +42,51 @@ api_key = st.secrets["GROQ_API_KEY"]
 
 # Embeddings
 embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2", model_kwargs={"device": "cpu"})
+
+# word cloud Generation function
+def generate_wordcloud(text):
+    stopwords = set(STOPWORDS)
+    stopwords.update(["please", "thank", "thanks", "assistant", "user"])
+
+    wordcloud = WordCloud(
+        width=400,  # Reduced width
+        height=200,  # Reduced height
+        background_color='white',
+        stopwords=stopwords
+    ).generate(text)
+
+    fig, ax = plt.subplots(figsize=(4, 2))  # Smaller figure
+    ax.imshow(wordcloud, interpolation='bilinear')
+    ax.axis("off")
+    buf = io.BytesIO()
+    plt.savefig(buf, format="png", bbox_inches='tight')
+    buf.seek(0)
+    return buf
+    
+def get_sbert_similarity(text1, text2, embedder):
+    # Embed both texts
+    emb1 = embedder.embed_query(text1)
+    emb2 = embedder.embed_query(text2)
+    # Compute cosine similarity
+    sim = cosine_similarity([emb1], [emb2])[0][0]
+    return sim
+    
+def get_most_common_words(text, n=10):
+    # Normalize text to lowercase
+    text = text.lower()
+    # Remove punctuation
+    text = text.translate(str.maketrans('', '', string.punctuation))
+    # Tokenize words
+    words = text.split()
+    # Remove stopwords
+    stopwords = set(STOPWORDS)
+    stopwords.update(["please", "thank", "thanks", "assistant", "user"])
+    words = [w for w in words if w not in stopwords]
+    # Count frequency
+    counter = collections.Counter(words)
+    # Return top n words with counts
+    return counter.most_common(n)
+
 
 # UI Setup
 image = Image.open('image.png')
@@ -49,11 +105,11 @@ st.subheader("How can I help you..?")
 # Sidebar
 st.sidebar.header("🔐 Configuration")
 selected_models = st.sidebar.multiselect(
-    "Select one or two Open Source models",
+    "Select one or more Open Source models",
     ["Gemma2-9b-It", "Deepseek-R1-Distill-Llama-70b", "Qwen-Qwq-32b", "Compound-Beta", "Llama3-70b-8192"],
-    default=["Gemma2-9b-It"],
-    max_selections=2
+    default=["Gemma2-9b-It"]
 )
+
 if not selected_models:
     st.warning("Please select at least one model.")
     st.stop()
@@ -69,10 +125,7 @@ if not api_key:
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
 session_id = st.session_state.session_id
-st.sidebar.text_input("Session ID", value=session_id, disabled=True)
-if st.sidebar.button("🔄 New Session"):
-    st.session_state.session_id = str(uuid.uuid4())
-    st.rerun()
+
 
 if 'store' not in st.session_state:
     st.session_state.store = {}
@@ -134,7 +187,10 @@ if st.sidebar.button("🔍 Evaluate Entire Conversation"):
         with st.expander("📜 Full conversation context", expanded=False):
             st.text(full_conversation)
         st.info(eval_result.content)
-
+        
+if st.sidebar.button("🔄 Refresh"):
+    st.session_state.session_id = str(uuid.uuid4())
+    st.rerun()
 
 # Init LLMs
 llms = {model: ChatGroq(groq_api_key=api_key, model_name=model, temperature=temperature) for model in selected_models}
@@ -148,6 +204,7 @@ with st.container():
 if user_input:
     session_history = st.session_state.store.get(session_id, ChatMessageHistory())
     context_string = "No PDF uploaded. Use chat history only."
+    retriever = None
 
     # Load and split PDF
     if uploaded_files:
@@ -158,60 +215,108 @@ if user_input:
                 temp_pdf = tmp.name
             loader = PyPDFLoader(temp_pdf)
             documents.extend(loader.load())
+
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=5000, chunk_overlap=500)
         splits = text_splitter.split_documents(documents)
-        vectorstore = Chroma.from_documents(splits, embedding=embeddings, persist_directory=None, collection_name=f"temp_{session_id}")
+        vectorstore = Chroma.from_documents(
+            splits,
+            embedding=embeddings,
+            persist_directory=None,
+            collection_name=f"temp_{session_id}"
+        )
         retriever = vectorstore.as_retriever()
         context_string = "\n\n".join(doc.page_content for doc in splits[:3])
 
-    col1, col2 = st.columns(2) if len(selected_models) == 2 else (st.container(), None)
-
-    for i, model_name in enumerate(selected_models):
+# for single output in single row
+    Selected_model=""
+    responses = {}
+    
+    for model_name in selected_models:
         model = llms[model_name]
-        with (col1 if i == 0 else col2):
-            st.markdown(f"""### 🤖 Response from <span style='color:#28a745'>{model_name}</span>""", unsafe_allow_html=True)
-            with st.spinner(f"Thinking with {model_name}..."):
-                if uploaded_files:
-                    history_aware_retriever = create_history_aware_retriever(model, retriever, contextualize_q_prompt)
-                    question_answer_chain = create_stuff_documents_chain(model, qa_prompt)
-                    rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
-
-                    def get_session_history(session: str) -> BaseChatMessageHistory:
-                        if session not in st.session_state.store:
-                            st.session_state.store[session] = ChatMessageHistory()
-                        return st.session_state.store[session]
-
-                    conversational_rag_chain = RunnableWithMessageHistory(
-                        rag_chain,
-                        get_session_history,
-                        input_messages_key="input",
-                        history_messages_key="chat_history",
-                        output_messages_key="answer",
-                    )
-
-                    response = conversational_rag_chain.invoke(
-                        {"input": user_input, "language": st.session_state.language},
-                        config={"configurable": {"session_id": session_id}},
-                    )
-                    assistant_reply = response['answer']
-                else:
-                    messages = qa_prompt.format_messages(
-                        input=user_input,
-                        chat_history=session_history.messages,
-                        context=context_string,
-                        language=st.session_state.language,
-                    )
-                    response = model.invoke(messages)
-                    assistant_reply = response.content
-                    session_history.add_user_message(user_input)
-                    session_history.add_ai_message(assistant_reply)
-                if len(selected_models) == 1:
-                    st.rerun()
-                st.markdown(assistant_reply)
-
-                eval_messages = evaluation_prompt.format_messages(
-                    question=user_input,
-                    answer=assistant_reply,
-                    context=context_string
+        st.markdown(f""" ### Generated by : <span style='color:#28a745'>{model_name}</span>""", unsafe_allow_html=True)
+    
+        with st.spinner(f"Thinking with {model_name}..."):
+            session_history = st.session_state.store.get(session_id, ChatMessageHistory())
+    
+            if uploaded_files and retriever is not None:
+                history_aware_retriever = create_history_aware_retriever(model, retriever, contextualize_q_prompt)
+                question_answer_chain = create_stuff_documents_chain(model, qa_prompt)
+                rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
+    
+                def get_session_history(session: str) -> BaseChatMessageHistory:
+                    if session not in st.session_state.store:
+                        st.session_state.store[session] = ChatMessageHistory()
+                    return st.session_state.store[session]
+    
+                conversational_rag_chain = RunnableWithMessageHistory(
+                    rag_chain,
+                    get_session_history,
+                    input_messages_key="input",
+                    history_messages_key="chat_history",
+                    output_messages_key="answer",
                 )
-               
+    
+                response = conversational_rag_chain.invoke(
+                    {"input": user_input, "language": st.session_state.language},
+                    config={"configurable": {"session_id": session_id}},
+                )
+                assistant_reply = re.sub(r"<think>.*?</think>", "", response['answer'], flags=re.DOTALL).strip()
+    
+            else:
+                messages = qa_prompt.format_messages(
+                    input=user_input,
+                    chat_history=session_history.messages,
+                    context=context_string,
+                    language=st.session_state.language,
+                )
+                response = model.invoke(messages)
+                assistant_reply = re.sub(r"<think>.*?</think>", "", response.content, flags=re.DOTALL).strip()
+    
+            responses[model_name] = assistant_reply
+            similarity_score = get_sbert_similarity(user_input, assistant_reply, embeddings)
+
+            # Display reply
+            st.markdown(
+                f"""
+                <div style="
+                    border-radius: 10px;
+                    padding: 1rem;
+                    font-size: 16px;
+                    line-height: 1.6;
+                    color: white;
+                    font-weight: 600;
+                ">
+                    {assistant_reply}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+    
+            st.markdown(f"""Word Cloud of Response of <span style='color:#28a745'>{model_name}</span>""", unsafe_allow_html=True)
+            wordcloud_img = generate_wordcloud(assistant_reply)
+            st.image(wordcloud_img, width=350)
+            st.markdown(f"<b>SBERT Similarity Score:</b> {similarity_score:.3f}",unsafe_allow_html=True)
+            common_words = get_most_common_words(assistant_reply, n=10)
+            common_words_str = ", ".join([f"{word} ({count})" for word, count in common_words])
+            st.markdown(f"**Top words in {model_name} response:** {common_words_str}")
+            eval_messages = evaluation_prompt.format_messages(
+                question=user_input,
+                answer=assistant_reply,
+                context=context_string
+            )
+    
+        st.divider()
+        st.markdown("<div style='margin-top: 50px;'></div>", unsafe_allow_html=True)
+    
+    # ✅ Now updating chat history after all responses are collected
+    session_history = st.session_state.store.get(session_id, ChatMessageHistory())
+    session_history.add_user_message(user_input)
+    
+    if len(responses) == 1:
+        # Single model, just use its response
+        only_reply = list(responses.values())[0]
+        session_history.add_ai_message(f"{selected_models[0]}: {only_reply}")
+    else:
+        # Multiple models, log each response with model name
+        combined_reply = "\n\n".join(f"🔹 **{model}**: {reply}" for model, reply in responses.items())
+        session_history.add_ai_message(combined_reply)

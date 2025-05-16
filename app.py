@@ -342,6 +342,8 @@ if user_input:
                 # session_history.add_user_message(user_input)
                 # session_history.add_ai_message(assistant_reply)
             Selected_model= model_name
+            if len(selected_models) == 1:
+                    st.rerun()
             st.markdown(
                 f"""
                 <div style="

@@ -106,7 +106,7 @@ st.subheader("How can I help you..?")
 st.sidebar.header("🔐 Configuration")
 selected_models = st.sidebar.multiselect(
     "Select one or more Open Source models",
-    ["Gemma2-9b-It", "Deepseek-R1-Distill-Llama-70b", "Qwen-Qwq-32b", "Compound-Beta", "Llama3-70b-8192"],
+    ["Gemma2-9b-It", "Deepseek-R1-Distill-Llama-70b", "Qwen-Qwq-32b", "Llama3-70b-8192"],
     default=["Gemma2-9b-It"]
 )
 

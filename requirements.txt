@@ -29,3 +29,5 @@ pysqlite3-binary
 sentence-transformers
 huggingface_hub
 Pillow
+datasets>=2.0.0
+pyarrow>=12.0.0

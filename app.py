@@ -109,8 +109,8 @@ st.subheader("How can I help you..?")
 st.sidebar.header("🔐 Configuration")
 selected_models = st.sidebar.multiselect(
     "Select one or more Open Source models",
-    ["Gemma2-9b-It", "Deepseek-R1-Distill-Llama-70b", "Qwen-Qwq-32b", "Llama3-70b-8192"],
-    default=["Gemma2-9b-It"]
+    ["gemma2-27b-it", "llama3.1-70b-versatile", "qwen2.5-72b-instruct", "llama3-70b-8192"],
+    default=["gemma2-27b-it"]
 )
 
 if not selected_models:
@@ -327,3 +327,4 @@ if user_input:
     else:
         combined_reply = "\n\n".join(f"🔹 **{model}**: {reply}" for model, reply in responses.items())
         session_history.add_ai_message(combined_reply)
+

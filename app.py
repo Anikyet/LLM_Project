@@ -52,7 +52,14 @@ os.environ["LANGCHAIN_PROJECT"] = st.secrets["LANGCHAIN_PROJECT"]
 api_key = st.secrets["GROQ_API_KEY"]
 
 # Embeddings
-embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2", model_kwargs={"device": "cpu"})
+# embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2", model_kwargs={"device": "cpu"})
+embeddings = HuggingFaceEmbeddings(
+    model_name="sentence-transformers/all-MiniLM-L6-v2",
+    model_kwargs={
+        "device": "cpu",
+        "torch_dtype": "float32"
+    }
+)
 
 # word cloud Generation function
 def generate_wordcloud(text):
@@ -327,4 +334,5 @@ if user_input:
     else:
         combined_reply = "\n\n".join(f"🔹 **{model}**: {reply}" for model, reply in responses.items())
         session_history.add_ai_message(combined_reply)
+
 

@@ -1,11 +1,12 @@
-# --- LangChain OLD API (compatible with your imports) ---
+# --- LangChain versions that allow old API but resolve dependencies ---
 langchain==0.1.20
+langchain-core>=0.1.52,<0.2.0
 langchain-community==0.0.38
-langchain-core==0.1.30
 langchain-text-splitters==0.0.1
 langchain-openai==0.0.8
-langchain-groq==0.0.4
-langchain-huggingface==0.0.7
+
+# Latest Groq package that works with old LangChain
+langchain-groq==0.1.6
 
 # --- Vector DB / Embeddings ---
 chromadb
